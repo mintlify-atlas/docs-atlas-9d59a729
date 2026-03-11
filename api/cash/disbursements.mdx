@@ -1,18 +1,18 @@
 ---
 title: 'Salidas de Caja y Viáticos'
-api: 'GET /api/salidas-caja'
+api: 'GET /api/caja/salidas'
 ---
 
 ## Listar Todas las Salidas
 
 <RequestExample>
 ```bash cURL
-curl https://api.fabricamarie.com/api/salidas-caja \
+curl https://api.fabricamarie.com/api/caja/salidas \
   -H "Authorization: Bearer {token}"
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.fabricamarie.com/api/salidas-caja', {
+const response = await fetch('https://api.fabricamarie.com/api/caja/salidas', {
   headers: {
     'Authorization': 'Bearer ' + token
   }
@@ -23,7 +23,7 @@ const salidas = await response.json();
 
 ```php PHP
 $salidas = Http::withToken($token)
-    ->get('https://api.fabricamarie.com/api/salidas-caja')
+    ->get('https://api.fabricamarie.com/api/caja/salidas')
     ->json();
 ```
 </RequestExample>
@@ -98,11 +98,11 @@ $salidas = Http::withToken($token)
 
 ## Crear Salida de Caja
 
-<api>POST /api/salidas-caja</api>
+<api>POST /api/caja/salidas</api>
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.fabricamarie.com/api/salidas-caja \
+curl -X POST https://api.fabricamarie.com/api/caja/salidas \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -114,7 +114,7 @@ curl -X POST https://api.fabricamarie.com/api/salidas-caja \
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.fabricamarie.com/api/salidas-caja', {
+const response = await fetch('https://api.fabricamarie.com/api/caja/salidas', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ' + token,
@@ -133,7 +133,7 @@ const salida = await response.json();
 
 ```php PHP
 $salida = Http::withToken($token)
-    ->post('https://api.fabricamarie.com/api/salidas-caja', [
+    ->post('https://api.fabricamarie.com/api/caja/salidas', [
         'destinatario' => 'Pedro Martínez',
         'motivo' => 'Compra de insumos',
         'entregado' => 500.00,
@@ -188,16 +188,16 @@ $salida = Http::withToken($token)
 
 ## Entregar Salida
 
-<api>POST /api/salidas-caja/{id}/entregar</api>
+<api>POST /api/caja/salidas/{id}/entregar</api>
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.fabricamarie.com/api/salidas-caja/45/entregar \
+curl -X POST https://api.fabricamarie.com/api/caja/salidas/45/entregar \
   -H "Authorization: Bearer {token}"
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.fabricamarie.com/api/salidas-caja/45/entregar', {
+const response = await fetch('https://api.fabricamarie.com/api/caja/salidas/45/entregar', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ' + token
@@ -232,11 +232,11 @@ Al entregar una salida, se registra automáticamente un movimiento de EGRESO en 
 
 ## Liquidar Salida
 
-<api>POST /api/salidas-caja/{id}/liquidar</api>
+<api>POST /api/caja/salidas/{id}/liquidar</api>
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.fabricamarie.com/api/salidas-caja/45/liquidar \
+curl -X POST https://api.fabricamarie.com/api/caja/salidas/45/liquidar \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -247,7 +247,7 @@ curl -X POST https://api.fabricamarie.com/api/salidas-caja/45/liquidar \
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.fabricamarie.com/api/salidas-caja/45/liquidar', {
+const response = await fetch('https://api.fabricamarie.com/api/caja/salidas/45/liquidar', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ' + token,
@@ -265,7 +265,7 @@ const result = await response.json();
 
 ```php PHP
 $result = Http::withToken($token)
-    ->post('https://api.fabricamarie.com/api/salidas-caja/45/liquidar', [
+    ->post('https://api.fabricamarie.com/api/caja/salidas/45/liquidar', [
         'usado' => 450.00,
         'vuelto' => 50.00,
         'comprobante' => 'FACT-001234'
@@ -328,11 +328,11 @@ Si hay vuelto, se registra automáticamente un movimiento de INGRESO en la caja 
 
 ### Listar Viáticos
 
-<api>GET /api/viaticos</api>
+<api>GET /api/caja_chica/viaticos</api>
 
 <RequestExample>
 ```bash cURL
-curl https://api.fabricamarie.com/api/viaticos \
+curl https://api.fabricamarie.com/api/caja_chica/viaticos \
   -H "Authorization: Bearer {token}"
 ```
 </RequestExample>
@@ -373,11 +373,11 @@ curl https://api.fabricamarie.com/api/viaticos \
 
 ### Crear Viático
 
-<api>POST /api/viaticos</api>
+<api>POST /api/caja_chica/viaticos</api>
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.fabricamarie.com/api/viaticos \
+curl -X POST https://api.fabricamarie.com/api/caja_chica/viaticos \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -424,11 +424,11 @@ curl -X POST https://api.fabricamarie.com/api/viaticos \
 
 ### Aprobar/Cambiar Estado del Viático
 
-<api>PATCH /api/viaticos/{id}/estado</api>
+<api>PUT /api/caja_chica/viaticos/{id}/estado</api>
 
 <RequestExample>
 ```bash cURL
-curl -X PATCH https://api.fabricamarie.com/api/viaticos/10/estado \
+curl -X PUT https://api.fabricamarie.com/api/caja_chica/viaticos/10/estado \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -449,11 +449,11 @@ Al aprobar un viático (estado APROBADO), se registra automáticamente un movimi
 
 ### Liquidar Viático
 
-<api>POST /api/viaticos/{id}/liquidar</api>
+<api>POST /api/caja_chica/viaticos/{id}/liquidar</api>
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.fabricamarie.com/api/viaticos/10/liquidar \
+curl -X POST https://api.fabricamarie.com/api/caja_chica/viaticos/10/liquidar \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
