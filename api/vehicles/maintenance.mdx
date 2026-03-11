@@ -1,0 +1,430 @@
+---
+title: 'Mantenimiento de Vehículos'
+api: 'GET /api/mantenimientos'
+---
+
+## Listar Mantenimientos
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/mantenimientos \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/mantenimientos', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const mantenimientos = await response.json();
+```
+
+```php PHP
+$mantenimientos = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/mantenimientos')
+    ->json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID del mantenimiento
+</ResponseField>
+
+<ResponseField name="vehiculo" type="object">
+  Información del vehículo asociado
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de mantenimiento: PREVENTIVO o CORRECTIVO
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Descripción del mantenimiento
+</ResponseField>
+
+<ResponseField name="fecha_programada" type="string">
+  Fecha programada para el mantenimiento
+</ResponseField>
+
+<ResponseField name="fecha_realizado" type="string">
+  Fecha en que se realizó el mantenimiento (si aplica)
+</ResponseField>
+
+<ResponseField name="costo_estimado" type="number">
+  Costo estimado del mantenimiento
+</ResponseField>
+
+<ResponseField name="costo_real" type="number">
+  Costo real del mantenimiento una vez completado
+</ResponseField>
+
+<ResponseField name="taller" type="string">
+  Nombre del taller donde se realiza el mantenimiento
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado: PENDIENTE, EN_PROCESO, COMPLETADO, o CANCELADO
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+[
+  {
+    "id": 5,
+    "vehiculo_id": 1,
+    "tipo": "PREVENTIVO",
+    "descripcion": "Cambio de aceite y filtros",
+    "fecha_programada": "2024-03-20",
+    "fecha_realizado": null,
+    "costo_estimado": 250.00,
+    "costo_real": null,
+    "taller": "Taller Central",
+    "estado": "PENDIENTE",
+    "created_at": "2024-03-10T10:00:00.000000Z",
+    "vehiculo": {
+      "id": 1,
+      "placa": "ABC-123",
+      "marca": "Toyota",
+      "modelo": "Hilux"
+    }
+  },
+  {
+    "id": 4,
+    "vehiculo_id": 2,
+    "tipo": "CORRECTIVO",
+    "descripcion": "Reparación de frenos",
+    "fecha_programada": "2024-03-15",
+    "fecha_realizado": "2024-03-15",
+    "costo_estimado": 500.00,
+    "costo_real": 520.00,
+    "taller": "Frenos Express",
+    "estado": "COMPLETADO",
+    "created_at": "2024-03-12T08:00:00.000000Z",
+    "vehiculo": {
+      "id": 2,
+      "placa": "XYZ-789",
+      "marca": "Nissan",
+      "modelo": "Frontier"
+    }
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Obtener Mantenimiento Específico
+
+<api>GET /api/mantenimientos/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/mantenimientos/5 \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/mantenimientos/5', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const mantenimiento = await response.json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del mantenimiento
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 5,
+  "vehiculo_id": 1,
+  "tipo": "PREVENTIVO",
+  "descripcion": "Cambio de aceite y filtros",
+  "fecha_programada": "2024-03-20",
+  "fecha_realizado": null,
+  "costo_estimado": 250.00,
+  "costo_real": null,
+  "taller": "Taller Central",
+  "estado": "PENDIENTE",
+  "vehiculo": {
+    "id": 1,
+    "placa": "ABC-123",
+    "marca": "Toyota",
+    "modelo": "Hilux",
+    "año": 2022,
+    "estado": "MANTENIMIENTO"
+  }
+}
+```
+</ResponseExample>
+
+---
+
+## Crear Mantenimiento
+
+<api>POST /api/mantenimientos</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/mantenimientos \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vehiculo_id": 1,
+    "tipo": "PREVENTIVO",
+    "descripcion": "Cambio de aceite y filtros",
+    "fecha_programada": "2024-03-20",
+    "costo_estimado": 250.00,
+    "taller": "Taller Central",
+    "estado": "PENDIENTE"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/mantenimientos', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    vehiculo_id: 1,
+    tipo: 'PREVENTIVO',
+    descripcion: 'Cambio de aceite y filtros',
+    fecha_programada: '2024-03-20',
+    costo_estimado: 250.00,
+    taller: 'Taller Central',
+    estado: 'PENDIENTE'
+  })
+});
+
+const mantenimiento = await response.json();
+```
+
+```php PHP
+$mantenimiento = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/mantenimientos', [
+        'vehiculo_id' => 1,
+        'tipo' => 'PREVENTIVO',
+        'descripcion' => 'Cambio de aceite y filtros',
+        'fecha_programada' => '2024-03-20',
+        'costo_estimado' => 250.00,
+        'taller' => 'Taller Central',
+        'estado' => 'PENDIENTE'
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField body="vehiculo_id" type="integer" required>
+  ID del vehículo que recibirá mantenimiento
+</ParamField>
+
+<ParamField body="tipo" type="string" required>
+  Tipo de mantenimiento: PREVENTIVO o CORRECTIVO
+</ParamField>
+
+<ParamField body="descripcion" type="string" required>
+  Descripción detallada del mantenimiento (máximo 255 caracteres)
+</ParamField>
+
+<ParamField body="fecha_programada" type="string" required>
+  Fecha programada para el mantenimiento (formato: YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="costo_estimado" type="number" required>
+  Costo estimado del mantenimiento (debe ser mayor o igual a 0)
+</ParamField>
+
+<ParamField body="taller" type="string" required>
+  Nombre del taller (máximo 255 caracteres)
+</ParamField>
+
+<ParamField body="estado" type="string" required>
+  Estado inicial: PENDIENTE, COMPLETADO, o CANCELADO
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 6,
+  "vehiculo_id": 1,
+  "tipo": "PREVENTIVO",
+  "descripcion": "Cambio de aceite y filtros",
+  "fecha_programada": "2024-03-20",
+  "costo_estimado": 250.00,
+  "taller": "Taller Central",
+  "estado": "PENDIENTE",
+  "created_at": "2024-03-15T16:00:00.000000Z",
+  "updated_at": "2024-03-15T16:00:00.000000Z"
+}
+```
+
+```json Error de Validación
+{
+  "message": "Los datos proporcionados no son válidos.",
+  "errors": {
+    "tipo": [
+      "El campo tipo debe ser PREVENTIVO o CORRECTIVO."
+    ],
+    "costo_estimado": [
+      "El costo estimado debe ser mayor o igual a 0."
+    ]
+  }
+}
+```
+</ResponseExample>
+
+<Warning>
+Al crear un mantenimiento, el estado del vehículo se actualiza automáticamente a "MANTENIMIENTO".
+</Warning>
+
+---
+
+## Actualizar Estado del Mantenimiento
+
+<api>PATCH /api/mantenimientos/{id}/estado</api>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://api.fabricamarie.com/api/mantenimientos/5/estado \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "COMPLETADO"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/mantenimientos/5/estado', {
+  method: 'PATCH',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    estado: 'COMPLETADO'
+  })
+});
+
+const result = await response.json();
+```
+
+```php PHP
+$result = Http::withToken($token)
+    ->patch('https://api.fabricamarie.com/api/mantenimientos/5/estado', [
+        'estado' => 'COMPLETADO'
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del mantenimiento
+</ParamField>
+
+<ParamField body="estado" type="string" required>
+  Nuevo estado: PENDIENTE, EN_PROCESO, o COMPLETADO
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Estado Actualizado"
+}
+```
+
+```json Error de Validación
+{
+  "message": "Los datos proporcionados no son válidos.",
+  "errors": {
+    "estado": [
+      "El campo estado debe ser PENDIENTE, EN_PROCESO o COMPLETADO."
+    ]
+  }
+}
+```
+</ResponseExample>
+
+<Info>
+**Comportamiento Automático al Completar:**
+
+Cuando se marca un mantenimiento como COMPLETADO, el sistema verifica si el vehículo tiene otros mantenimientos pendientes:
+- Si NO hay otros mantenimientos pendientes, el estado del vehículo se actualiza automáticamente a "DISPONIBLE"
+- Si SÍ hay otros mantenimientos pendientes, el estado del vehículo permanece como "MANTENIMIENTO"
+</Info>
+
+---
+
+## Eliminar Mantenimiento
+
+<api>DELETE /api/mantenimientos/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.fabricamarie.com/api/mantenimientos/5 \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/mantenimientos/5', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const result = await response.json();
+```
+
+```php PHP
+$result = Http::withToken($token)
+    ->delete('https://api.fabricamarie.com/api/mantenimientos/5')
+    ->json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del mantenimiento a eliminar
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Mantenimiento eliminado"
+}
+```
+</ResponseExample>
+
+---
+
+## Tipos de Mantenimiento
+
+### Mantenimiento Preventivo
+
+Mantenimiento programado regularmente para prevenir problemas:
+- Cambio de aceite
+- Rotación de neumáticos
+- Revisión de frenos
+- Inspección general
+- Alineación y balanceo
+
+### Mantenimiento Correctivo
+
+Mantenimiento para corregir problemas existentes:
+- Reparación de motor
+- Cambio de piezas dañadas
+- Reparación de transmisión
+- Arreglo de sistema eléctrico
+- Reparación de carrocería
+
+<Tip>
+Se recomienda programar mantenimientos preventivos cada 5,000 km o 3 meses para mantener los vehículos en óptimas condiciones.
+</Tip>

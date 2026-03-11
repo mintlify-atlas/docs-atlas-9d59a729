@@ -1,0 +1,469 @@
+---
+title: 'Instalación en Producción'
+description: 'Guía completa paso a paso para instalar Fabrica Marie ERP en un servidor de producción'
+---
+
+## Preparación del Servidor
+
+Antes de comenzar, asegúrate de haber cumplido con todos los [requisitos de producción](/development/deployment/requirements).
+
+<Warning>
+  Esta guía asume que tienes acceso SSH al servidor y privilegios de administrador (sudo).
+</Warning>
+
+## Proceso de Instalación
+
+<Steps>
+  <Step title="Actualizar el sistema">
+    Actualiza los paquetes del sistema operativo:
+
+    ```bash
+    sudo apt update && sudo apt upgrade -y
+    ```
+  </Step>
+
+  <Step title="Instalar dependencias del sistema">
+    Instala PHP, extensiones necesarias y herramientas:
+
+    ```bash
+    # Agregar repositorio de PHP
+    sudo apt install -y software-properties-common
+    sudo add-apt-repository ppa:ondrej/php -y
+    sudo apt update
+
+    # Instalar PHP 8.2 y extensiones
+    sudo apt install -y php8.2 php8.2-cli php8.2-fpm php8.2-mysql \
+      php8.2-xml php8.2-mbstring php8.2-curl php8.2-zip \
+      php8.2-gd php8.2-bcmath php8.2-intl php8.2-redis
+
+    # Instalar MySQL
+    sudo apt install -y mysql-server
+
+    # Instalar Node.js 18
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt install -y nodejs
+
+    # Instalar Composer
+    curl -sS https://getcomposer.org/installer | php
+    sudo mv composer.phar /usr/local/bin/composer
+
+    # Instalar Git
+    sudo apt install -y git
+    ```
+
+    <Tip>
+      Verifica las versiones instaladas con `php -v`, `node -v`, y `composer --version`.
+    </Tip>
+  </Step>
+
+  <Step title="Crear base de datos">
+    Configura MySQL y crea la base de datos:
+
+    ```bash
+    # Acceder a MySQL
+    sudo mysql
+    ```
+
+    Ejecuta los siguientes comandos SQL:
+
+    ```sql
+    -- Crear base de datos
+    CREATE DATABASE fabrica_marie_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    -- Crear usuario y otorgar permisos
+    CREATE USER 'fabricamarie'@'localhost' IDENTIFIED BY 'tu_contraseña_segura';
+    GRANT ALL PRIVILEGES ON fabrica_marie_api.* TO 'fabricamarie'@'localhost';
+    FLUSH PRIVILEGES;
+
+    -- Salir
+    EXIT;
+    ```
+
+    <Warning>
+      Reemplaza `tu_contraseña_segura` con una contraseña fuerte y única.
+    </Warning>
+  </Step>
+
+  <Step title="Clonar el repositorio">
+    Clona el código fuente en el directorio del servidor:
+
+    ```bash
+    # Crear directorio para la aplicación
+    sudo mkdir -p /var/www/fabricamarie
+    sudo chown $USER:$USER /var/www/fabricamarie
+
+    # Clonar repositorio
+    cd /var/www
+    git clone https://github.com/tu-organizacion/fabrica-marie-erp.git fabricamarie
+    cd fabricamarie
+    ```
+  </Step>
+
+  <Step title="Instalar dependencias de PHP">
+    Instala las dependencias de Composer optimizadas para producción:
+
+    ```bash
+    composer install --optimize-autoloader --no-dev
+    ```
+
+    <Note>
+      El flag `--no-dev` excluye las dependencias de desarrollo, reduciendo el tamaño de la instalación.
+    </Note>
+
+    El flag `--optimize-autoloader` genera un autoloader optimizado para mejor rendimiento.
+  </Step>
+
+  <Step title="Instalar dependencias de Node.js">
+    Instala las dependencias de frontend:
+
+    ```bash
+    npm install
+    ```
+  </Step>
+
+  <Step title="Compilar assets frontend">
+    Compila los assets para producción:
+
+    ```bash
+    npm run build
+    ```
+
+    <Tip>
+      Este comando ejecuta Vite en modo producción, optimizando y minificando todos los archivos JavaScript y CSS.
+    </Tip>
+  </Step>
+
+  <Step title="Configurar variables de entorno">
+    Crea el archivo de configuración `.env` desde el ejemplo:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edita el archivo `.env` con tu editor preferido:
+
+    ```bash
+    nano .env
+    ```
+
+    Configura las siguientes variables para producción:
+
+    ```bash
+    APP_NAME="Fabrica Marie ERP"
+    APP_ENV=production
+    APP_KEY=
+    APP_DEBUG=false
+    APP_TIMEZONE=America/Mexico_City
+    APP_URL=https://tu-dominio.com
+
+    APP_LOCALE=es
+    APP_FALLBACK_LOCALE=es
+
+    LOG_CHANNEL=daily
+    LOG_LEVEL=error
+
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=fabrica_marie_api
+    DB_USERNAME=fabricamarie
+    DB_PASSWORD=tu_contraseña_segura
+
+    SESSION_DRIVER=database
+    SESSION_LIFETIME=120
+
+    QUEUE_CONNECTION=database
+
+    CACHE_STORE=redis
+    REDIS_CLIENT=phpredis
+    REDIS_HOST=127.0.0.1
+    REDIS_PASSWORD=null
+    REDIS_PORT=6379
+
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.tu-servidor.com
+    MAIL_PORT=587
+    MAIL_USERNAME=tu_usuario
+    MAIL_PASSWORD=tu_contraseña
+    MAIL_ENCRYPTION=tls
+    MAIL_FROM_ADDRESS="noreply@tu-dominio.com"
+    MAIL_FROM_NAME="${APP_NAME}"
+    ```
+
+    <Warning>
+      Asegúrate de que `APP_DEBUG=false` en producción para no exponer información sensible.
+    </Warning>
+  </Step>
+
+  <Step title="Generar clave de aplicación">
+    Genera la clave de encriptación de Laravel:
+
+    ```bash
+    php artisan key:generate
+    ```
+
+    Este comando actualiza automáticamente `APP_KEY` en tu archivo `.env`.
+  </Step>
+
+  <Step title="Ejecutar migraciones">
+    Crea las tablas de la base de datos:
+
+    ```bash
+    php artisan migrate --force
+    ```
+
+    <Note>
+      El flag `--force` es necesario en producción ya que Laravel solicita confirmación.
+    </Note>
+
+    Opcionalmente, ejecuta los seeders para datos iniciales:
+
+    ```bash
+    php artisan db:seed --force
+    ```
+  </Step>
+
+  <Step title="Configurar permisos">
+    Establece los permisos correctos para los directorios de almacenamiento:
+
+    ```bash
+    # Cambiar propietario a www-data (usuario del servidor web)
+    sudo chown -R www-data:www-data /var/www/fabricamarie
+
+    # Dar permisos de escritura a directorios específicos
+    sudo chmod -R 775 /var/www/fabricamarie/storage
+    sudo chmod -R 775 /var/www/fabricamarie/bootstrap/cache
+    ```
+
+    <Warning>
+      Nunca uses `chmod 777` en producción, ya que representa un riesgo de seguridad.
+    </Warning>
+  </Step>
+
+  <Step title="Optimizar la aplicación">
+    Ejecuta comandos de optimización de Laravel:
+
+    ```bash
+    # Cachear configuración
+    php artisan config:cache
+
+    # Cachear rutas
+    php artisan route:cache
+
+    # Cachear vistas
+    php artisan view:cache
+
+    # Optimizar autoloader
+    composer dump-autoload --optimize
+    ```
+
+    <Tip>
+      Estos comandos mejoran significativamente el rendimiento de la aplicación.
+    </Tip>
+  </Step>
+
+  <Step title="Configurar servidor web (Nginx)">
+    Crea un archivo de configuración para Nginx:
+
+    ```bash
+    sudo nano /etc/nginx/sites-available/fabricamarie
+    ```
+
+    Agrega la siguiente configuración:
+
+    ```nginx
+    server {
+        listen 80;
+        listen [::]:80;
+        server_name tu-dominio.com www.tu-dominio.com;
+        
+        # Redirigir a HTTPS
+        return 301 https://$server_name$request_uri;
+    }
+
+    server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+        server_name tu-dominio.com www.tu-dominio.com;
+        root /var/www/fabricamarie/public;
+
+        # Certificados SSL (configurar después con Let's Encrypt)
+        ssl_certificate /etc/letsencrypt/live/tu-dominio.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/tu-dominio.com/privkey.pem;
+
+        add_header X-Frame-Options "SAMEORIGIN";
+        add_header X-Content-Type-Options "nosniff";
+
+        index index.php;
+
+        charset utf-8;
+
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+
+        location = /favicon.ico { access_log off; log_not_found off; }
+        location = /robots.txt  { access_log off; log_not_found off; }
+
+        error_page 404 /index.php;
+
+        location ~ \.php$ {
+            fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+        location ~ /\.(?!well-known).* {
+            deny all;
+        }
+    }
+    ```
+
+    Habilita el sitio y reinicia Nginx:
+
+    ```bash
+    # Crear enlace simbólico
+    sudo ln -s /etc/nginx/sites-available/fabricamarie /etc/nginx/sites-enabled/
+
+    # Verificar configuración
+    sudo nginx -t
+
+    # Reiniciar Nginx
+    sudo systemctl restart nginx
+    ```
+  </Step>
+
+  <Step title="Configurar SSL con Let's Encrypt">
+    Instala Certbot y obtén un certificado SSL gratuito:
+
+    ```bash
+    # Instalar Certbot
+    sudo apt install -y certbot python3-certbot-nginx
+
+    # Obtener certificado SSL
+    sudo certbot --nginx -d tu-dominio.com -d www.tu-dominio.com
+    ```
+
+    Certbot configurará automáticamente Nginx para usar HTTPS.
+
+    <Tip>
+      Los certificados de Let's Encrypt se renuevan automáticamente. Verifica con `sudo certbot renew --dry-run`.
+    </Tip>
+  </Step>
+
+  <Step title="Verificar instalación">
+    Accede a tu dominio en el navegador:
+
+    ```
+    https://tu-dominio.com
+    ```
+
+    Deberías ver la pantalla de inicio de Fabrica Marie ERP.
+
+    <Check>
+      ¡Instalación completada exitosamente!
+    </Check>
+  </Step>
+</Steps>
+
+## Configuración Alternativa con Apache
+
+Si prefieres usar Apache en lugar de Nginx:
+
+```bash
+# Instalar Apache y módulo PHP
+sudo apt install -y apache2 libapache2-mod-php8.2
+
+# Habilitar módulos necesarios
+sudo a2enmod rewrite
+sudo a2enmod ssl
+sudo a2enmod headers
+```
+
+Crea el archivo de configuración:
+
+```bash
+sudo nano /etc/apache2/sites-available/fabricamarie.conf
+```
+
+Agrega:
+
+```apache
+<VirtualHost *:80>
+    ServerName tu-dominio.com
+    ServerAlias www.tu-dominio.com
+    DocumentRoot /var/www/fabricamarie/public
+
+    <Directory /var/www/fabricamarie/public>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/fabricamarie-error.log
+    CustomLog ${APACHE_LOG_DIR}/fabricamarie-access.log combined
+</VirtualHost>
+```
+
+Habilita el sitio:
+
+```bash
+sudo a2ensite fabricamarie.conf
+sudo systemctl restart apache2
+
+# Configurar SSL con Certbot
+sudo certbot --apache -d tu-dominio.com -d www.tu-dominio.com
+```
+
+## Solución de Problemas
+
+### Error 500 - Internal Server Error
+
+```bash
+# Verificar permisos
+sudo chown -R www-data:www-data /var/www/fabricamarie/storage
+sudo chmod -R 775 /var/www/fabricamarie/storage
+
+# Verificar logs
+tail -f /var/www/fabricamarie/storage/logs/laravel.log
+```
+
+### Página en blanco
+
+```bash
+# Limpiar cache
+php artisan cache:clear
+php artisan config:clear
+php artisan view:clear
+
+# Reconstruir cache
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+### Assets no se cargan
+
+Verifica que la URL en `.env` sea correcta:
+
+```bash
+APP_URL=https://tu-dominio.com
+```
+
+Regenera assets:
+
+```bash
+npm run build
+php artisan config:cache
+```
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Configuración" icon="gear" href="/development/deployment/configuration">
+    Configura opciones avanzadas de producción
+  </Card>
+  <Card title="Mejores Prácticas" icon="shield-check" href="/development/deployment/production">
+    Aprende sobre optimización y seguridad
+  </Card>
+</CardGroup>

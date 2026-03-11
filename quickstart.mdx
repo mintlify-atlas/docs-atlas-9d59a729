@@ -1,80 +1,707 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Guía de Inicio Rápido
+description: Aprende a instalar, configurar y usar el sistema Fabrica Marie ERP en minutos
 ---
 
-## Get started in three steps
+# Inicio Rápido
 
-Get your documentation site running locally and make your first customization.
+Esta guía te llevará paso a paso desde la instalación hasta la realización de tu primera venta en el sistema Fabrica Marie ERP.
 
-### Step 1: Set up your local environment
+## Requisitos del Sistema
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+Antes de comenzar, asegúrate de tener instalado:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Backend" icon="server">
+    - PHP 8.2 o superior
+    - Composer
+    - MySQL 8.0 o superior
+    - Extensiones PHP: PDO, OpenSSL, Mbstring, JSON
+  </Card>
+  <Card title="Frontend" icon="laptop-code">
+    - Node.js 18+ y npm/yarn
+    - Navegador moderno (Chrome, Firefox, Edge)
+    - Al menos 4GB RAM disponible
+  </Card>
 </CardGroup>
 
+## Instalación del Sistema
+
+<Steps>
+  <Step title="Clonar el Repositorio">
+    Clona el proyecto desde tu repositorio Git:
+    
+    ```bash
+    git clone <url-del-repositorio> fabrica-marie-erp
+    cd fabrica-marie-erp
+    ```
+  </Step>
+
+  <Step title="Configurar Backend (Laravel)">
+    Instala las dependencias de PHP y configura el entorno:
+    
+    ```bash
+    # Instalar dependencias
+    composer install
+    
+    # Copiar archivo de configuración
+    cp .env.example .env
+    
+    # Generar clave de aplicación
+    php artisan key:generate
+    ```
+    
+    Edita el archivo `.env` con tus credenciales de base de datos:
+    
+    ```env .env
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=fabrica_marie
+    DB_USERNAME=root
+    DB_PASSWORD=tu_password
+    
+    # Configuración de Sanctum
+    SANCTUM_STATEFUL_DOMAINS=localhost:3000
+    SESSION_DOMAIN=localhost
+    ```
+  </Step>
+
+  <Step title="Migrar Base de Datos">
+    Ejecuta las migraciones y seeders para crear la estructura inicial:
+    
+    ```bash
+    # Crear base de datos (si no existe)
+    mysql -u root -p -e "CREATE DATABASE fabrica_marie CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    
+    # Ejecutar migraciones
+    php artisan migrate
+    
+    # Ejecutar seeders (roles, permisos y usuario admin)
+    php artisan db:seed
+    ```
+    
+    <Note>
+    Los seeders crearán un usuario administrador por defecto:
+    - **Email**: admin@fabricamarie.com
+    - **Password**: password
+    </Note>
+  </Step>
+
+  <Step title="Configurar Frontend (React)">
+    Navega al directorio del frontend e instala dependencias:
+    
+    ```bash
+    cd resources/js
+    npm install
+    ```
+    
+    Crea un archivo `.env` en el directorio `resources/js`:
+    
+    ```env resources/js/.env
+    VITE_API_URL=http://localhost:8000/api
+    VITE_APP_URL=http://localhost:3000
+    ```
+  </Step>
+
+  <Step title="Iniciar Servidores">
+    Abre dos terminales y ejecuta:
+    
+    **Terminal 1 - Backend:**
+    ```bash
+    php artisan serve
+    # Backend corriendo en http://localhost:8000
+    ```
+    
+    **Terminal 2 - Frontend:**
+    ```bash
+    cd resources/js
+    npm run dev
+    # Frontend corriendo en http://localhost:3000
+    ```
+  </Step>
+</Steps>
+
+<Check>
+**¡Instalación Completa!** Ahora puedes acceder al sistema en `http://localhost:3000`
+</Check>
+
+## Primer Acceso al Sistema
+
+### 1. Iniciar Sesión
+
+Accede a la interfaz de login en `http://localhost:3000/login`:
+
+<CodeGroup>
+```tsx Login Request
+// El componente Login envía las credenciales al backend
+import { authService } from '@/services/api';
+
+const response = await authService.login({
+  email: 'admin@fabricamarie.com',
+  password: 'password'
+});
+
+// Respuesta del servidor (routes/api.php:43)
+{
+  "token": "1|laravel_sanctum_token...",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@fabricamarie.com",
+    "nombre": "Administrador",
+    "activo": 1
+  },
+  "roles": [{"id": 1, "nombre": "ADMIN"}],
+  "permisos": [...]
+}
+```
+
+```php Backend Auth Logic
+// app/Http/Controllers/Api/AuthController.php:11
+public function login(Request $request)
+{
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required'
+    ]);
+
+    if (!Auth::attempt([
+        'email' => $credentials['email'],
+        'password' => $credentials['password'],
+        'activo' => 1
+    ])) {
+        return response()->json(
+            ['message' => 'Credenciales incorrectas'], 
+            401
+        );
+    }
+
+    $user = Auth::user();
+    $user->ultimo_login = now();
+    $user->save();
+
+    $token = $user->createToken('erp-token')->plainTextToken;
+
+    return response()->json([
+        'token' => $token,
+        'user' => $user,
+        'roles' => $user->roles,
+        'permisos' => $user->permisos()->get()
+    ]);
+}
+```
+</CodeGroup>
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+El token generado se almacena en `localStorage` y se envía en el header `Authorization: Bearer {token}` en todas las peticiones subsecuentes.
 </Note>
+
+### 2. Dashboard Principal
+
+Después del login exitoso, serás redirigido al dashboard donde verás:
+
+- **Resumen de ventas del día**
+- **Estado de caja actual**
+- **Alertas de stock mínimo**
+- **Vendedores en ruta** (GPS activo)
+- **Métricas clave** del negocio
+
+## Configuración Inicial
+
+### Paso 1: Crear Productos
+
+Navega a **Almacén > Productos** y registra tus primeros productos:
+
+<Steps>
+  <Step title="Acceder al Módulo de Productos">
+    Desde el menú lateral, selecciona **Almacén > Productos** o navega a `/almacen/productos`.
+  </Step>
+
+  <Step title="Registrar Nuevo Producto">
+    Haz clic en **Nuevo Producto** y completa el formulario:
+    
+    ```json Ejemplo de Producto
+    {
+      "sku": "GAL-VAIN-500",
+      "categoria": "GALLETAS",
+      "nombre": "Galleta de Vainilla 500g",
+      "descripcion": "Galletas de vainilla empaquetadas",
+      "presentacion": "Bolsa",
+      "marca": "Fabrica Marie",
+      "unidad_medida": "UNIDAD",
+      "peso": 500,
+      "precio_base": 8.50,
+      "costo": 4.20,
+      "stock_minimo": 50,
+      "activo": 1
+    }
+    ```
+    
+    <Note>
+    El campo `stock_minimo` activará alertas automáticas cuando el stock esté por debajo de este valor.
+    </Note>
+  </Step>
+
+  <Step title="Verificar Producto Creado">
+    El sistema hace un POST a `/api/inventario/productos` con los datos del producto:
+    
+    ```php app/Http/Controllers/Api/ProductoController.php
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'sku' => 'required|unique:productos',
+            'nombre' => 'required',
+            'precio_base' => 'required|numeric|min:0',
+            'costo' => 'required|numeric|min:0',
+            // ... más validaciones
+        ]);
+
+        $producto = Producto::create($validated);
+        return response()->json($producto, 201);
+    }
+    ```
+  </Step>
+</Steps>
+
+### Paso 2: Configurar Rumas
+
+Las **rumas** son grupos de producción que agrupan productos fabricados en el mismo lote:
+
+<Steps>
+  <Step title="Crear Nueva Ruma">
+    Ve a **Almacén > Rumas** y crea tu primera ruma:
+    
+    ```json Ejemplo de Ruma
+    {
+      "codigo": "RUMA-2026-001",
+      "fecha_produccion": "2026-03-11",
+      "fecha_vencimiento": "2026-05-11",
+      "estado": "ACTIVA",
+      "lote": "L001-MAR-2026",
+      "observaciones": "Producción de marzo - vainilla"
+    }
+    ```
+  </Step>
+
+  <Step title="Registrar Stock Inicial">
+    Después de crear la ruma, registra el stock producido en **Almacén > Movimientos**:
+    
+    ```json Movimiento de Entrada
+    {
+      "producto_id": 1,
+      "ruma_id": 1,
+      "tipo": "ENTRADA",
+      "origen": "PRODUCCION",
+      "cantidad": 500,
+      "costo_unitario": 4.20,
+      "descripcion": "Producción inicial - Galletas Vainilla 500g"
+    }
+    ```
+    
+    Este movimiento actualiza automáticamente la tabla `stock_actual`.
+  </Step>
+</Steps>
+
+### Paso 3: Crear Rutas y Clientes
+
+<Steps>
+  <Step title="Definir Rutas">
+    En **Rutas**, crea las zonas de distribución:
+    
+    ```json Ejemplo de Ruta
+    {
+      "nombre": "Ruta Centro",
+      "zona": "Centro - Junín",
+      "descripcion": "Tiendas del centro de la ciudad",
+      "frecuencia": "DIARIO",
+      "clientes_estimados": 20,
+      "activo": 1
+    }
+    ```
+  </Step>
+
+  <Step title="Registrar Clientes">
+    En **Clientes > Nuevo Cliente**, registra tus clientes:
+    
+    ```json Ejemplo de Cliente
+    {
+      "codigo_cliente": "CLI-001",
+      "razon_social": "Bodega San Martín",
+      "tipo_cliente": "BODEGA",
+      "direccion": "Jr. San Martín 123, Junín",
+      "telefono": "987654321",
+      "ruta_id": 1,
+      "condicion_pago": "CREDITO",
+      "limite_credito": 2000.00,
+      "dias_credito": 15,
+      "activo": 1
+    }
+    ```
+  </Step>
+
+  <Step title="Asignar Clientes a Rutas">
+    Desde la vista de detalle de la ruta, asigna los clientes y define el orden de visita.
+  </Step>
+</Steps>
+
+### Paso 4: Configurar Usuarios y Vendedores
+
+Como administrador, crea cuentas para tu equipo:
+
+<Steps>
+  <Step title="Crear Usuario">
+    En **Administración > Usuarios**, registra un nuevo usuario:
+    
+    ```json Ejemplo de Usuario Vendedor
+    {
+      "username": "jperez",
+      "email": "jperez@fabricamarie.com",
+      "password": "vendedor123",
+      "nombre": "Juan Pérez",
+      "activo": 1
+    }
+    ```
+  </Step>
+
+  <Step title="Asignar Rol">
+    Asigna el rol **VENDEDOR** al usuario creado. El sistema insertará el registro en la tabla `usuario_rol`.
+  </Step>
+
+  <Step title="Crear Perfil de Vendedor">
+    El sistema automáticamente crea un registro en la tabla `vendedores` vinculado al usuario. Asigna la ruta correspondiente.
+  </Step>
+</Steps>
+
+## Flujo de Trabajo: Tu Primera Venta
+
+Ahora que el sistema está configurado, realicemos una venta completa:
+
+### 1. Abrir Caja
+
+<Steps>
+  <Step title="Acceder al Módulo de Caja">
+    Navega a **Caja > Actual** o directamente a `/caja/actual`.
+  </Step>
+
+  <Step title="Abrir Caja del Día">
+    Haz clic en **Abrir Caja** e ingresa el saldo inicial:
+    
+    ```json POST /api/caja/abrir
+    {
+      "monto_apertura": 100.00
+    }
+    ```
+    
+    El backend crea el registro de caja:
+    
+    ```php app/Http/Controllers/Api/CajaController.php:30
+    public function abrir(Request $request)
+    {
+        // Validar que no haya caja abierta
+        $caja = Caja::where('fecha', now()->toDateString())
+            ->where('estado', 'ABIERTA')
+            ->first();
+            
+        if ($caja) {
+            return response()->json([
+                'error' => 'Ya existe una caja abierta'
+            ], 400);
+        }
+        
+        return Caja::create([
+            'usuario_id' => auth()->id(),
+            'fecha' => now()->toDateString(),
+            'saldo_inicial' => $request->monto_apertura,
+            'saldo_actual' => $request->monto_apertura,
+            'estado' => 'ABIERTA'
+        ]);
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+**Importante**: Debes tener una caja abierta antes de registrar ventas. El middleware `CajaAbierta` bloqueará las operaciones si no existe caja del día.
+</Warning>
+
+### 2. Asignar Stock al Vendedor (Salida de Fábrica)
+
+<Steps>
+  <Step title="Crear Salida de Fábrica">
+    Ve a **Almacén > Salida Fábrica** y crea una salida para el vendedor:
+    
+    ```json POST /api/inventario/salidas
+    {
+      "vendedor_id": 1,
+      "fecha": "2026-03-11",
+      "vehiculo_id": 1,
+      "ruta_id": 1,
+      "estado": "PENDIENTE",
+      "items": [
+        {
+          "producto_id": 1,
+          "ruma_id": 1,
+          "cantidad": 100,
+          "costo_unitario": 4.20
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Confirmar Salida">
+    Al confirmar la salida (cambiar estado a CONFIRMADA), el sistema:
+    
+    - Descuenta del `stock_actual` en almacén
+    - Registra en `stock_vendedor` asignado al vendedor
+    - Crea movimientos en la tabla `movimientos_stock`
+  </Step>
+</Steps>
+
+### 3. Registrar la Venta
+
+<Steps>
+  <Step title="Navegar a Nueva Venta">
+    El vendedor accede a **Ventas > Nueva Venta** (`/ventas/nueva`).
+  </Step>
+
+  <Step title="Seleccionar Cliente y Productos">
+    Completa el formulario de venta:
+    
+    ```json POST /api/ventas
+    {
+      "cliente_id": 1,
+      "vendedor_id": 1,
+      "tipo_pago": "CONTADO",
+      "metodo_pago_detalle": "EFECTIVO",
+      "descuento": 0,
+      "total_neto": 850.00,
+      "items": [
+        {
+          "producto_id": 1,
+          "salida_id": 1,
+          "cantidad": 100,
+          "precio_unitario": 8.50,
+          "subtotal": 850.00,
+          "es_bonificacion": false,
+          "es_degustacion": false
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Venta Creada en Borrador">
+    El sistema crea la venta con estado `BORRADOR` y reserva el stock:
+    
+    ```php app/Http/Controllers/Api/VentaController.php:198
+    return DB::transaction(function () use ($validated) {
+        $venta = Venta::create([
+            'cliente_id' => $validated['cliente_id'],
+            'vendedor_id' => $validated['vendedor_id'],
+            'fecha' => Carbon::now(),
+            'tipo_pago' => $validated['tipo_pago'],
+            'total_neto' => $validated['total_neto'],
+            'estado' => 'BORRADOR' // Estado inicial
+        ]);
+        
+        // Generar código
+        $venta->codigo = 'VTA-' . str_pad($venta->id, 6, '0', STR_PAD_LEFT);
+        $venta->save();
+        
+        // Crear items
+        foreach ($validated['items'] as $item) {
+            $venta->items()->create($item);
+        }
+        
+        // Crear cuenta por cobrar si es crédito
+        if ($venta->tipo_pago === 'CREDITO') {
+            $venta->cuenta()->create([
+                'cliente_id' => $venta->cliente_id,
+                'monto_total' => $venta->total_neto,
+                'saldo' => $venta->total_neto - $venta->adelanto,
+                'estado' => 'PENDIENTE'
+            ]);
+        }
+        
+        // Reservar stock
+        $this->reservarStock($venta);
+        
+        return $venta->load('items');
+    });
+    ```
+    
+    <Note>
+    La venta en BORRADOR no afecta el stock real, solo lo reserva. Esto permite editar o eliminar la venta antes de confirmarla.
+    </Note>
+  </Step>
+</Steps>
+
+### 4. Confirmar la Venta
+
+<Steps>
+  <Step title="Confirmar desde el Detalle">
+    Desde la vista de detalle de la venta, haz clic en **Confirmar Venta**:
+    
+    ```json POST /api/ventas/{id}/confirmar
+    {}
+    ```
+  </Step>
+
+  <Step title="Proceso de Confirmación">
+    El sistema ejecuta las siguientes operaciones en una transacción:
+    
+    ```php app/Http/Controllers/Api/VentaController.php:264
+    public function confirmar($id, StockService $stockService)
+    {
+        return DB::transaction(function () use ($id, $stockService) {
+            $venta = Venta::with('items')
+                ->lockForUpdate()
+                ->findOrFail($id);
+            
+            // 1. Validar stock disponible
+            foreach ($venta->items as $item) {
+                $stock = StockVendedor::where('producto_id', $item->producto_id)
+                    ->where('vendedor_id', $venta->vendedor_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                
+                // 2. Convertir reserva en descuento real
+                $stock->cantidad -= $item->cantidad;
+                $stock->stock_reservado -= $item->cantidad;
+                $stock->vendido += $item->cantidad;
+                $stock->save();
+                
+                // 3. Actualizar salida
+                $salida = Salida::find($item->salida_id);
+                $salidaItem = $salida->items()
+                    ->where('producto_id', $item->producto_id)
+                    ->first();
+                $salidaItem->cantidad -= $item->cantidad;
+                $salidaItem->save();
+            }
+            
+            // 4. Registrar ingreso en caja
+            if($venta->tipo_pago === 'CONTADO'){
+                CajaService::registrarMovimiento([
+                    'tipo' => 'INGRESO',
+                    'monto' => $venta->total_neto,
+                    'categoria' => 'VENTA',
+                    'descripcion' => 'Venta confirmada, Venta #'.$venta->id,
+                    'referencia_tipo' => 'VENTA',
+                    'referencia_id' => $venta->id
+                ]);
+            }
+            
+            // 5. Cambiar estado
+            $venta->estado = 'CONFIRMADA';
+            $venta->save();
+            
+            return [
+                'message' => 'Venta confirmada correctamente',
+                'venta_id' => $venta->id
+            ];
+        });
+    }
+    ```
+  </Step>
+</Steps>
+
+<Check>
+**¡Venta Confirmada!** El stock ha sido descontado, la caja actualizada y la venta está registrada en el sistema.
+</Check>
+
+### 5. Cerrar Caja
+
+Al final del día:
+
+<Steps>
+  <Step title="Revisar Movimientos">
+    En **Caja > Actual**, verifica todos los movimientos del día:
+    
+    - Ingresos por ventas
+    - Egresos por gastos
+    - Abonos recibidos
+    - Salidas de caja
+  </Step>
+
+  <Step title="Realizar Cierre">
+    Haz clic en **Cerrar Caja** e ingresa el efectivo físico contado:
+    
+    ```json POST /api/caja/{id}/cerrar
+    {
+      "efectivo_contado": 950.00,
+      "observaciones": "Cierre normal del día"
+    }
+    ```
+    
+    El sistema calcula automáticamente:
+    
+    - **Saldo Esperado** = Saldo Inicial + Ingresos - Egresos
+    - **Diferencia** = Efectivo Contado - Saldo Esperado
+    - **Estado**: SOBRANTE, EXACTO o FALTANTE
+  </Step>
+
+  <Step title="Generar Reporte">
+    El sistema crea un registro en `cierres_caja` y genera un PDF con el detalle completo del cierre.
+  </Step>
+</Steps>
+
+## Funcionalidades Avanzadas
+
+### Venta a Crédito
+
+Para ventas al fiado:
+
+1. Selecciona **Tipo de Pago: CRÉDITO**
+2. Ingresa el **adelanto** (si aplica)
+3. El sistema crea automáticamente una **Cuenta por Cobrar**
+4. Los abonos posteriores se registran en **Ventas > Cobranzas**
+
+### Anulación de Ventas
+
+<Warning>
+Solo se pueden anular ventas en estado CONFIRMADA que:
+- No tengan abonos registrados (si es crédito)
+- Se anulen con caja abierta
+- El usuario tenga el permiso `eliminar_venta`
+</Warning>
+
+Al anular:
+- Se devuelve el stock al vendedor
+- Se registra un egreso en caja (devolución del dinero)
+- La venta cambia a estado ANULADA
+
+### Seguimiento GPS
+
+Activa el seguimiento de vendedores en ruta:
+
+1. Asigna un vehículo al vendedor en **Vehículos**
+2. El vendedor envía puntos GPS desde su dispositivo móvil
+3. Monitorea en tiempo real desde **GPS > Seguimiento**
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Arquitectura del Sistema" icon="diagram-project" href="/architecture">
+    Profundiza en la arquitectura técnica y diseño de base de datos
+  </Card>
+  <Card title="Módulo de Inventario" icon="boxes-stacked" href="/guides/inventory-operations">
+    Guía completa del módulo de gestión de inventario
+  </Card>
+  <Card title="Módulo de Ventas" icon="shopping-cart" href="/guides/sales-process">
+    Todo sobre el proceso de ventas y cobranzas
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Documentación técnica de todos los endpoints
+  </Card>
+</CardGroup>
+
+## Soporte
+
+¿Necesitas ayuda? Contacta al equipo de soporte:
+
+- **Email**: soporte@fabricamarie.com
+- **Teléfono**: +51 987 654 321
+- **Horario**: Lunes a Viernes, 8:00 AM - 6:00 PM

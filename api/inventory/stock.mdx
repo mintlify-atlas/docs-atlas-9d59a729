@@ -1,0 +1,280 @@
+---
+title: 'Stock Actual'
+description: 'Consulta del stock actual en todas las rumas'
+---
+
+## Listar Stock Actual
+
+<api method="GET" path="/api/inventario/stock" />
+
+Obtiene el listado completo del stock actual de todos los productos en todas las rumas, incluyendo información detallada del producto y la ruma.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Descripción
+
+Este endpoint proporciona una vista consolidada del inventario actual, mostrando:
+- Qué productos están almacenados
+- En qué rumas se encuentran
+- Las cantidades disponibles de cada producto por ruma
+- La fecha del último movimiento
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único del registro de stock
+</ResponseField>
+
+<ResponseField name="producto_id" type="integer">
+  ID del producto
+</ResponseField>
+
+<ResponseField name="ruma_id" type="integer">
+  ID de la ruma donde está almacenado
+</ResponseField>
+
+<ResponseField name="cantidad" type="integer">
+  Cantidad disponible en esta ruma
+</ResponseField>
+
+<ResponseField name="fecha_ultimo_mov" type="timestamp">
+  Fecha y hora del último movimiento registrado
+</ResponseField>
+
+<ResponseField name="producto" type="object">
+  Objeto completo con toda la información del producto
+</ResponseField>
+
+<ResponseField name="ruma" type="object">
+  Objeto completo con toda la información de la ruma
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/stock" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/stock', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const stock = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/inventario/stock');
+$stock = $response->json();
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': f'Bearer {token}',
+    'Accept': 'application/json'
+}
+
+response = requests.get(
+    'https://api.fabricamarie.com/api/inventario/stock',
+    headers=headers
+)
+stock = response.json()
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 1,
+    "producto_id": 1,
+    "ruma_id": 5,
+    "cantidad": 350,
+    "fecha_ultimo_mov": "2024-01-20 14:30:00",
+    "producto": {
+      "id": 1,
+      "sku": "PAN-001",
+      "categoria": "Panadería",
+      "nombre": "Pan Francés",
+      "descripcion": "Pan francés tradicional",
+      "presentacion": "Bolsa x 12 unidades",
+      "marca": "Fabrica Marie",
+      "unidad_medida": "unidad",
+      "peso": 0.8,
+      "precio_base": 15.50,
+      "costo": 8.00,
+      "stock_minimo": 100,
+      "activo": true,
+      "created_at": "2024-01-15 08:30:00",
+      "created_by": 1
+    },
+    "ruma": {
+      "id": 5,
+      "codigo": "RUMA-A05",
+      "nombre": "Ruma Principal A5",
+      "descripcion": "Área para panadería general",
+      "condiciones": "Ambiente seco",
+      "capacidad_unidades": 1000,
+      "ubicacion_fisica": "Almacén Central - Pasillo A - Nivel 5",
+      "estado": "ACTIVA"
+    }
+  },
+  {
+    "id": 2,
+    "producto_id": 1,
+    "ruma_id": 8,
+    "cantidad": 200,
+    "fecha_ultimo_mov": "2024-01-20 09:15:00",
+    "producto": {
+      "id": 1,
+      "sku": "PAN-001",
+      "categoria": "Panadería",
+      "nombre": "Pan Francés",
+      "descripcion": "Pan francés tradicional",
+      "presentacion": "Bolsa x 12 unidades",
+      "marca": "Fabrica Marie",
+      "unidad_medida": "unidad",
+      "peso": 0.8,
+      "precio_base": 15.50,
+      "costo": 8.00,
+      "stock_minimo": 100,
+      "activo": true,
+      "created_at": "2024-01-15 08:30:00",
+      "created_by": 1
+    },
+    "ruma": {
+      "id": 8,
+      "codigo": "RUMA-B02",
+      "nombre": "Ruma Secundaria B2",
+      "descripcion": "Área de respaldo",
+      "condiciones": "Ambiente seco",
+      "capacidad_unidades": 500,
+      "ubicacion_fisica": "Almacén Central - Pasillo B - Nivel 2",
+      "estado": "ACTIVA"
+    }
+  },
+  {
+    "id": 3,
+    "producto_id": 15,
+    "ruma_id": 12,
+    "cantidad": 480,
+    "fecha_ultimo_mov": "2024-01-20 16:45:00",
+    "producto": {
+      "id": 15,
+      "sku": "TORT-015",
+      "categoria": "Repostería",
+      "nombre": "Torta de Crema",
+      "descripcion": "Torta con crema chantilly",
+      "presentacion": "Unidad 1kg",
+      "marca": "Fabrica Marie",
+      "unidad_medida": "unidad",
+      "peso": 1.0,
+      "precio_base": 45.00,
+      "costo": 25.00,
+      "stock_minimo": 50,
+      "activo": true,
+      "created_at": "2024-01-10 10:00:00",
+      "created_by": 1
+    },
+    "ruma": {
+      "id": 12,
+      "codigo": "RUMA-F01",
+      "nombre": "Ruma Refrigerada F1",
+      "descripcion": "Cámara frigorífica para productos delicados",
+      "condiciones": "Refrigerado 4-8°C",
+      "capacidad_unidades": 500,
+      "ubicacion_fisica": "Cámara Frigorífica - Sector F",
+      "estado": "ACTIVA"
+    }
+  }
+]
+```
+
+### Casos de Uso
+
+#### 1. Dashboard de Inventario
+Usa este endpoint para mostrar el stock actual en un dashboard, agrupando por producto o por ruma.
+
+#### 2. Verificación antes de Salidas
+Antes de crear una salida, consulta este endpoint para verificar disponibilidad de productos en diferentes rumas.
+
+#### 3. Reportes de Stock
+Genera reportes consolidados del inventario actual, incluyendo valorización multiplicando cantidad por precio.
+
+#### 4. Alertas de Stock
+Cruza los datos con el `stock_minimo` de cada producto para generar alertas de reabastecimiento.
+
+### Notas Importantes
+
+<Info>
+  Este endpoint solo muestra registros donde existe stock. Si una ruma está vacía o un producto no tiene stock en ninguna ruma, no aparecerá en la respuesta.
+</Info>
+
+<Info>
+  Para obtener el stock total de un producto específico, suma las cantidades de todos los registros que tengan el mismo `producto_id`.
+</Info>
+
+### Filtrado del Lado del Cliente
+
+Puedes filtrar los resultados en tu aplicación:
+
+<CodeGroup>
+```javascript JavaScript - Filtrar por Producto
+// Obtener todo el stock de un producto específico
+const stockProducto = stock.filter(item => item.producto_id === 1);
+
+// Calcular stock total de ese producto
+const stockTotal = stockProducto.reduce((sum, item) => sum + item.cantidad, 0);
+```
+
+```javascript JavaScript - Filtrar por Ruma
+// Obtener todo el stock de una ruma específica
+const stockRuma = stock.filter(item => item.ruma_id === 5);
+
+// Calcular ocupación de la ruma
+const ocupacion = stockRuma.reduce((sum, item) => sum + item.cantidad, 0);
+```
+
+```javascript JavaScript - Productos con Stock Bajo
+// Filtrar productos con stock menor al mínimo
+const stockBajo = stock.reduce((productos, item) => {
+  const productoId = item.producto_id;
+  if (!productos[productoId]) {
+    productos[productoId] = {
+      producto: item.producto,
+      stockTotal: 0
+    };
+  }
+  productos[productoId].stockTotal += item.cantidad;
+  return productos;
+}, {});
+
+const alertas = Object.values(stockBajo).filter(
+  p => p.stockTotal <= p.producto.stock_minimo
+);
+```
+</CodeGroup>
+
+### Optimización de Rendimiento
+
+<Tip>
+  Si trabajas con grandes volúmenes de datos, considera implementar paginación o filtros en el backend. Consulta con tu equipo de desarrollo para agregar parámetros de consulta como `?producto_id=1` o `?ruma_id=5` si es necesario.
+</Tip>
+
+### Errores Comunes
+
+- **401 Unauthorized**: Token inválido o ausente
+- **403 Forbidden**: Usuario sin permisos suficientes para ver el inventario
+- **500 Internal Server Error**: Error en el servidor, contacta al equipo técnico

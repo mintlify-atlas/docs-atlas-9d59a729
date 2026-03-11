@@ -1,0 +1,664 @@
+---
+title: 'Operaciones de Inventario'
+description: 'Guía completa para el personal de almacén: gestión de productos, rumas, stock, salidas y devoluciones'
+icon: 'warehouse'
+---
+
+## Descripción General
+
+Esta guía está diseñada para el personal de almacén (rol ALMACENERO) y cubre todas las operaciones de inventario en Fabrica Marie ERP: desde la recepción de productos hasta la preparación de salidas para vendedores.
+
+<Info>
+  **Roles con acceso:** ADMIN, ALMACENERO, VENDEDOR (limitado), GERENTE
+</Info>
+
+## Gestión de Productos
+
+### Listar Productos
+
+Consulta todos los productos registrados en el sistema:
+
+```bash
+GET /api/inventario/productos
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 1,
+    "sku": "PAN-001",
+    "nombre": "Pan Blanco Grande",
+    "descripcion": "Pan blanco de 500g",
+    "unidad_medida": "UNIDAD",
+    "precio_base": 3.50,
+    "stock_minimo": 100,
+    "stock_actual": 450,
+    "activo": true
+  }
+]
+```
+
+### Crear Nuevo Producto
+
+<Steps>
+  <Step title="Preparar información">
+    Recopila los datos del producto:
+    - SKU único
+    - Nombre descriptivo
+    - Unidad de medida (UNIDAD, KILO, CAJA, etc.)
+    - Precio base
+    - Stock mínimo para alertas
+  </Step>
+
+  <Step title="Enviar petición">
+    ```bash
+    POST /api/inventario/productos
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "sku": "PAN-002",
+      "nombre": "Pan Integral Grande",
+      "descripcion": "Pan integral de 500g con cereales",
+      "unidad_medida": "UNIDAD",
+      "precio_base": 4.00,
+      "stock_minimo": 80
+    }
+    ```
+  </Step>
+
+  <Step title="Verificar creación">
+    El sistema responde con el producto creado y su ID.
+  </Step>
+</Steps>
+
+<Warning>
+  El SKU debe ser único en el sistema. No se pueden crear dos productos con el mismo SKU.
+</Warning>
+
+### Alertas de Stock Mínimo
+
+Consulta productos con stock por debajo del mínimo:
+
+```bash
+GET /api/inventario/alertas/stock-minimo
+Authorization: Bearer {token}
+```
+
+Esto te ayuda a identificar productos que requieren reabastecimiento urgente.
+
+## Gestión de Rumas
+
+### ¿Qué es una Ruma?
+
+Una ruma es una ubicación física de almacenamiento dentro de la fábrica. Cada ruma tiene:
+- **Código único**: Identificador alfanumérico (ej: "R-A1", "R-B3")
+- **Capacidad**: Cantidad máxima de unidades que puede almacenar
+- **Ubicación física**: Descripción de dónde se encuentra
+- **Estado**: ACTIVA, INACTIVA, MANTENIMIENTO, LLENA
+
+### Listar Rumas
+
+```bash
+GET /api/inventario/rumas
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 1,
+    "codigo": "R-A1",
+    "nombre": "Ruma A1 - Panes",
+    "ubicacion_fisica": "Sector A, Fila 1, Nivel 1",
+    "capacidad": 1000,
+    "stockActual": 450,
+    "estado": "ACTIVA",
+    "condiciones": "Temperatura ambiente",
+    "products": [
+      {
+        "id": 1,
+        "nombre": "Pan Blanco Grande",
+        "cantidad": 450
+      }
+    ]
+  }
+]
+```
+
+### Crear Nueva Ruma
+
+<Steps>
+  <Step title="Definir ubicación">
+    Identifica la ubicación física en el almacén y define el código de la ruma.
+  </Step>
+
+  <Step title="Registrar en el sistema">
+    ```bash
+    POST /api/inventario/rumas
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "codigo": "R-B5",
+      "nombre": "Ruma B5 - Galletas",
+      "descripcion": "Almacenamiento de productos de galletas",
+      "ubicacion_fisica": "Sector B, Fila 5, Nivel 2",
+      "capacidad_unidades": 1500,
+      "condiciones": "Ambiente seco, sin humedad",
+      "estado": "ACTIVA"
+    }
+    ```
+  </Step>
+
+  <Step title="Marcar físicamente">
+    Coloca etiqueta física con el código de la ruma en la ubicación.
+  </Step>
+</Steps>
+
+<Note>
+  Los estados disponibles son:
+  - **ACTIVA**: Ruma operativa para almacenamiento
+  - **INACTIVA**: Ruma no disponible temporalmente
+  - **MANTENIMIENTO**: Ruma en reparación o limpieza
+  - **LLENA**: Ruma a capacidad máxima
+</Note>
+
+### Actualizar Ruma
+
+Puedes modificar la capacidad, estado o condiciones de una ruma:
+
+```bash
+PUT /api/inventario/rumas/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "capacidad_unidades": 2000,
+  "estado": "MANTENIMIENTO",
+  "condiciones": "En limpieza profunda"
+}
+```
+
+<Warning>
+  No puedes reducir la capacidad por debajo del stock actual. Primero debes mover el stock a otra ruma.
+</Warning>
+
+## Movimientos de Stock
+
+### Tipos de Movimientos
+
+El sistema soporta varios tipos de movimientos:
+
+<Accordion title="INGRESO - Recepción de Productos">
+Registra entrada de productos nuevos a una ruma.
+
+**Cuándo usar:**
+- Producción nueva de la fábrica
+- Compra de materia prima
+- Devolución de productos en buen estado
+
+**Efecto:** Aumenta el stock en la ruma especificada
+</Accordion>
+
+<Accordion title="SALIDA - Despacho a Vendedores">
+Registra salida de productos del almacén.
+
+**Cuándo usar:**
+- Preparación de salidas para vendedores
+- Transferencias entre ubicaciones
+- Despachos especiales
+
+**Efecto:** Disminuye el stock en la ruma especificada
+</Accordion>
+
+<Accordion title="AJUSTE - Corrección de Inventario">
+Corrige diferencias entre stock físico y sistema.
+
+**Cuándo usar:**
+- Después de un inventario físico
+- Corrección de errores de registro
+- Ajustes por diferencias detectadas
+
+**Efecto:** Puede aumentar o disminuir según el ajuste
+</Accordion>
+
+<Accordion title="DEVOLUCION_BUENA - Productos Devueltos OK">
+Registra devolución de productos en buen estado.
+
+**Cuándo usar:**
+- Vendedor devuelve productos no vendidos
+- Productos en perfectas condiciones
+
+**Efecto:** Aumenta el stock disponible
+</Accordion>
+
+<Accordion title="DEVOLUCION_MALA - Productos Dañados">
+Registra devolución de productos dañados o vencidos.
+
+**Cuándo usar:**
+- Productos dañados durante transporte
+- Productos vencidos
+- Productos con defectos de calidad
+
+**Efecto:** No aumenta stock disponible, se registra como merma
+</Accordion>
+
+<Accordion title="DESECHO - Eliminación de Stock">
+Registra eliminación definitiva de productos.
+
+**Cuándo usar:**
+- Productos vencidos sin posibilidad de uso
+- Productos dañados irreparables
+- Destrucción autorizada
+
+**Efecto:** Disminuye el stock permanentemente
+</Accordion>
+
+### Registrar Movimiento de Stock
+
+<Steps>
+  <Step title="Identificar producto y ruma">
+    Verifica el ID del producto y el ID de la ruma donde se hará el movimiento.
+  </Step>
+
+  <Step title="Crear movimiento">
+    ```bash
+    POST /api/inventario/movimientos
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "tipo": "INGRESO",
+      "producto_id": 1,
+      "ruma_id": 3,
+      "cantidad": 200,
+      "motivo": "Producción del día 11/03/2026 - Hornada #5"
+    }
+    ```
+  </Step>
+
+  <Step title="Verificar stock actualizado">
+    El sistema actualiza automáticamente:
+    - Stock actual del producto en la ruma
+    - Fecha del último movimiento
+    - Registro en kardex
+  </Step>
+</Steps>
+
+### Consultar Historial de Movimientos
+
+Ver todos los movimientos de stock:
+
+```bash
+GET /api/inventario/movimientos
+Authorization: Bearer {token}
+```
+
+### Kardex de Producto
+
+El kardex es el historial detallado de movimientos de un producto específico:
+
+```bash
+GET /api/kardex/{producto_id}
+Authorization: Bearer {token}
+```
+
+**Parámetros opcionales:**
+- `desde`: Fecha inicial (formato: YYYY-MM-DD)
+- `hasta`: Fecha final (formato: YYYY-MM-DD)
+
+**Respuesta:**
+
+```json
+[
+  {
+    "fecha": "2026-03-11 08:00:00",
+    "tipo": "INGRESO",
+    "ingreso": 200,
+    "salida": 0,
+    "stock": 650,
+    "motivo": "Producción del día",
+    "usuario_id": 3
+  },
+  {
+    "fecha": "2026-03-11 10:30:00",
+    "tipo": "SALIDA",
+    "ingreso": 0,
+    "salida": 150,
+    "stock": 500,
+    "motivo": "Salida para vendedor #2",
+    "usuario_id": 3
+  }
+]
+```
+
+<Info>
+  El kardex valorizado incluye además el precio unitario y valores monetarios de cada movimiento. Accede con `/api/kardex/{producto_id}/valorizado`
+</Info>
+
+## Salidas de Fábrica
+
+### ¿Qué es una Salida?
+
+Una salida es el proceso de preparar mercadería del almacén para que un vendedor la lleve en su ruta. Cada salida incluye:
+- Vendedor asignado
+- Vehículo asignado
+- Ruta a recorrer
+- Lista de productos con cantidades
+- Estado (PENDIENTE, EN_RUTA, COMPLETADO)
+
+### Crear Salida de Fábrica
+
+<Steps>
+  <Step title="Verificar disponibilidad">
+    Verifica que:
+    - El vendedor no tenga otra salida pendiente
+    - El vehículo esté disponible
+    - Haya stock suficiente en las rumas
+  </Step>
+
+  <Step title="Preparar lista de productos">
+    Define qué productos y cantidades llevará el vendedor.
+  </Step>
+
+  <Step title="Crear la salida">
+    ```bash
+    POST /api/inventario/salidas
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "fecha": "2026-03-11",
+      "vendedor_id": 5,
+      "vehiculo_id": 2,
+      "ruta_id": 8,
+      "zona": "Zona Norte",
+      "items": [
+        {
+          "producto_id": 1,
+          "ruma_id": 3,
+          "cantidad": 150
+        },
+        {
+          "producto_id": 2,
+          "ruma_id": 3,
+          "cantidad": 200
+        },
+        {
+          "producto_id": 5,
+          "ruma_id": 4,
+          "cantidad": 100
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Proceso automático">
+    El sistema automáticamente:
+    - ✅ Descuenta stock de las rumas especificadas
+    - ✅ Crea stock de vendedor con las cantidades
+    - ✅ Registra movimientos en el kardex
+    - ✅ Asigna vendedor al vehículo si no estaba asignado
+  </Step>
+</Steps>
+
+<Warning>
+  Validaciones importantes:
+  - Un vendedor solo puede tener UNA salida en estado PENDIENTE o EN_RUTA
+  - Un vehículo solo puede tener UNA salida activa
+  - Debe haber stock suficiente en cada ruma
+</Warning>
+
+### Consultar Salidas
+
+```bash
+GET /api/inventario/salidas
+Authorization: Bearer {token}
+```
+
+**Respuesta con detalles completos:**
+
+```json
+[
+  {
+    "id": 45,
+    "fecha": "2026-03-11",
+    "estado": "EN_RUTA",
+    "zona": "Zona Norte",
+    "vendedor": {
+      "id": 5,
+      "usuario": {
+        "nombre": "Carlos Mendoza"
+      }
+    },
+    "vehiculo": {
+      "id": 2,
+      "placa": "ABC-123",
+      "modelo": "Toyota Hiace 2020"
+    },
+    "ruta": {
+      "id": 8,
+      "nombre": "Ruta Norte A"
+    },
+    "items": [
+      {
+        "producto": {
+          "nombre": "Pan Blanco Grande"
+        },
+        "cantidad": 150,
+        "ruma": {
+          "codigo": "R-A1"
+        }
+      }
+    ]
+  }
+]
+```
+
+### Actualizar Estado de Salida
+
+Cambia el estado de una salida según el progreso:
+
+```bash
+PUT /api/inventario/salidas/estado/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "estado": "EN_RUTA"  // PENDIENTE, EN_RUTA, COMPLETADO
+}
+```
+
+**Estados:**
+- **PENDIENTE**: Salida creada, vendedor aún no sale
+- **EN_RUTA**: Vendedor en recorrido
+- **COMPLETADO**: Ruta finalizada, vendedor regresó
+
+## Devoluciones
+
+### Proceso de Devolución
+
+Cuando un vendedor regresa productos, debes registrar la devolución:
+
+<Steps>
+  <Step title="Recibir productos físicamente">
+    El vendedor entrega los productos devueltos.
+  </Step>
+
+  <Step title="Clasificar por estado">
+    Determina si son:
+    - **BUENA**: Productos en perfecto estado, pueden venderse nuevamente
+    - **MALA**: Productos dañados, vencidos o con defectos
+  </Step>
+
+  <Step title="Registrar devolución">
+    ```bash
+    POST /api/inventario/devoluciones
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "fecha": "2026-03-11",
+      "vendedor_id": 5,
+      "tipo": "BUENA",
+      "items": [
+        {
+          "producto_id": 1,
+          "cantidad": 25
+        },
+        {
+          "producto_id": 2,
+          "cantidad": 30
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Aprobar o rechazar">
+    Una devolución se crea en estado PENDIENTE. Un supervisor debe aprobarla:
+
+    ```bash
+    PUT /api/inventario/devoluciones/{id}/estado
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "estado": "ACEPTADA"  // ACEPTADA o RECHAZADA
+    }
+    ```
+  </Step>
+
+  <Step title="Actualización automática de stock">
+    Al ACEPTAR la devolución:
+    - **BUENA**: Se suma al stock disponible de la ruma original
+    - **MALA**: Se registra como merma, NO se suma a stock disponible
+  </Step>
+</Steps>
+
+<Note>
+  El sistema obtiene automáticamente la última ruma de donde salió el producto para registrar la devolución en el mismo lugar.
+</Note>
+
+### Consultar Devoluciones
+
+```bash
+GET /api/inventario/devoluciones
+Authorization: Bearer {token}
+```
+
+## Flujo Completo de Trabajo Diario
+
+Ejemplo de un día típico en el almacén:
+
+<Steps>
+  <Step title="Inicio del día (7:00 AM)">
+    - Revisar alertas de stock mínimo
+    - Planificar producción del día
+    - Verificar estado de rumas
+  </Step>
+
+  <Step title="Recepción de producción (8:00 AM)">
+    - Recibir productos de producción
+    - Registrar INGRESO a rumas correspondientes
+    - Actualizar kardex
+  </Step>
+
+  <Step title="Preparación de salidas (9:00 AM)">
+    - Revisar rutas del día
+    - Crear salidas para cada vendedor
+    - Entregar productos y documentación
+  </Step>
+
+  <Step title="Monitoreo (Durante el día)">
+    - Actualizar estados de salidas (EN_RUTA)
+    - Atender pedidos especiales
+    - Registrar movimientos adicionales
+  </Step>
+
+  <Step title="Recepción de vendedores (5:00 PM)">
+    - Recibir productos devueltos
+    - Clasificar devoluciones (BUENA/MALA)
+    - Actualizar salidas a COMPLETADO
+  </Step>
+
+  <Step title="Cierre del día (6:00 PM)">
+    - Aprobar devoluciones pendientes
+    - Verificar stock actualizado
+    - Generar reportes de movimientos del día
+  </Step>
+</Steps>
+
+## Reportes y Consultas
+
+### Consultar Stock Actual
+
+Ver stock actual de todos los productos por ruma:
+
+```bash
+GET /api/inventario/stock
+Authorization: Bearer {token}
+```
+
+### Reporte de Movimientos del Día
+
+Filtra movimientos por fecha:
+
+```bash
+GET /api/inventario/movimientos?fecha=2026-03-11
+Authorization: Bearer {token}
+```
+
+### Análisis de Salidas Pendientes
+
+```bash
+GET /api/inventario/salidas?estado=PENDIENTE
+Authorization: Bearer {token}
+```
+
+## Buenas Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Organización Física" icon="boxes-stacked">
+    - Mantén las rumas ordenadas y etiquetadas
+    - Aplica FIFO (First In, First Out)
+    - Separa productos por tipo y fecha de producción
+  </Card>
+
+  <Card title="Registro Inmediato" icon="clock">
+    - Registra movimientos en el momento que ocurren
+    - No acumules registros para el final del día
+    - Verifica datos antes de confirmar
+  </Card>
+
+  <Card title="Control de Calidad" icon="magnifying-glass">
+    - Inspecciona productos al recibirlos
+    - Clasifica correctamente devoluciones
+    - Reporta anomalías inmediatamente
+  </Card>
+
+  <Card title="Comunicación" icon="comments">
+    - Coordina con producción sobre ingresos
+    - Informa a vendedores sobre disponibilidad
+    - Reporta stock mínimo a gerencia
+  </Card>
+</CardGroup>
+
+## Siguientes Pasos
+
+<CardGroup cols={2}>
+  <Card title="Proceso de Ventas" icon="cart-shopping" href="/guides/sales-process">
+    Aprende cómo los vendedores usan el stock asignado.
+  </Card>
+
+  <Card title="Gestión de Rutas" icon="route" href="/guides/route-management">
+    Comprende la asignación de rutas y clientes.
+  </Card>
+</CardGroup>

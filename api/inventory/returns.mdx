@@ -1,0 +1,517 @@
+---
+title: 'Devoluciones'
+description: 'Gestión de devoluciones de productos por vendedores'
+---
+
+## Listar Devoluciones
+
+<api method="GET" path="/api/inventario/devoluciones" />
+
+Obtiene la lista de todas las devoluciones registradas, ordenadas de la más reciente a la más antigua.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único de la devolución
+</ResponseField>
+
+<ResponseField name="fecha" type="date">
+  Fecha de la devolución
+</ResponseField>
+
+<ResponseField name="vendedor_id" type="integer">
+  ID del vendedor que realiza la devolución
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de devolución: `BUENA` (producto en buen estado) o `MALA` (producto dañado)
+</ResponseField>
+
+<ResponseField name="motivo" type="string" nullable>
+  Motivo de la devolución
+</ResponseField>
+
+<ResponseField name="observaciones" type="string" nullable>
+  Observaciones adicionales sobre la devolución
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la devolución: `PENDIENTE`, `ACEPTADA`, `RECHAZADA`
+</ResponseField>
+
+<ResponseField name="created_at" type="timestamp">
+  Fecha y hora de registro de la devolución
+</ResponseField>
+
+<ResponseField name="vendedor" type="object">
+  Objeto con información del vendedor y su usuario
+</ResponseField>
+
+<ResponseField name="items" type="array">
+  Array de productos devueltos con cantidades
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/devoluciones" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/devoluciones', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const devoluciones = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/inventario/devoluciones');
+$devoluciones = $response->json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 15,
+    "fecha": "2024-01-20",
+    "vendedor_id": 5,
+    "tipo": "BUENA",
+    "motivo": "Producto no vendido",
+    "observaciones": "Cliente canceló pedido",
+    "estado": "ACEPTADA",
+    "created_at": "2024-01-20 18:30:00",
+    "vendedor": {
+      "id": 5,
+      "usuario": {
+        "id": 12,
+        "nombre": "Carlos Pérez",
+        "email": "carlos.perez@fabricamarie.com"
+      }
+    },
+    "items": [
+      {
+        "id": 25,
+        "devolucion_id": 15,
+        "producto_id": 1,
+        "cantidad": 20,
+        "producto": {
+          "id": 1,
+          "sku": "PAN-001",
+          "nombre": "Pan Francés",
+          "precio_base": 15.50
+        }
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "fecha": "2024-01-19",
+    "vendedor_id": 5,
+    "tipo": "MALA",
+    "motivo": "Producto dañado en transporte",
+    "observaciones": "Se cayó de la camioneta",
+    "estado": "PENDIENTE",
+    "created_at": "2024-01-19 17:15:00",
+    "vendedor": {
+      "id": 5,
+      "usuario": {
+        "id": 12,
+        "nombre": "Carlos Pérez",
+        "email": "carlos.perez@fabricamarie.com"
+      }
+    },
+    "items": [
+      {
+        "id": 24,
+        "devolucion_id": 14,
+        "producto_id": 15,
+        "cantidad": 5,
+        "producto": {
+          "id": 15,
+          "sku": "TORT-015",
+          "nombre": "Torta de Crema",
+          "precio_base": 45.00
+        }
+      }
+    ]
+  }
+]
+```
+
+---
+
+## Obtener Devolución
+
+<api method="GET" path="/api/inventario/devoluciones/{id}" />
+
+Obtiene información detallada de una devolución específica.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la devolución
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/devoluciones/15" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/devoluciones/15', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const devolucion = await response.json();
+```
+</CodeGroup>
+
+---
+
+## Registrar Devolución
+
+<api method="POST" path="/api/inventario/devoluciones" />
+
+Registra una nueva devolución de productos por parte de un vendedor. La devolución se crea en estado `PENDIENTE` y debe ser aceptada o rechazada posteriormente.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="fecha" type="date" required>
+  Fecha de la devolución (formato: YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="vendedor_id" type="integer" required>
+  ID del vendedor que realiza la devolución
+</ParamField>
+
+<ParamField body="tipo" type="string" required>
+  Tipo de devolución. Valores permitidos: `BUENA`, `MALA`
+</ParamField>
+
+<ParamField body="items" type="array" required>
+  Array de productos a devolver (mínimo 1 item)
+</ParamField>
+
+<ParamField body="items[].producto_id" type="integer" required>
+  ID del producto a devolver
+</ParamField>
+
+<ParamField body="items[].cantidad" type="integer" required>
+  Cantidad de unidades a devolver (mínimo 1)
+</ParamField>
+
+### Tipos de Devolución
+
+<Card title="BUENA" icon="check-circle">
+  Producto en buen estado que puede ser reintegrado al stock regular. Al ser aceptada, incrementa el stock disponible en la ruma original.
+</Card>
+
+<Card title="MALA" icon="exclamation-circle">
+  Producto dañado o en mal estado. Se registra como devolución pero NO incrementa el stock de productos buenos. Se registra como movimiento tipo `DEVOLUCION_MALA`.
+</Card>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.fabricamarie.com/api/inventario/devoluciones" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fecha": "2024-01-20",
+    "vendedor_id": 5,
+    "tipo": "BUENA",
+    "items": [
+      {
+        "producto_id": 1,
+        "cantidad": 20
+      },
+      {
+        "producto_id": 2,
+        "cantidad": 15
+      }
+    ]
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/devoluciones', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    fecha: '2024-01-20',
+    vendedor_id: 5,
+    tipo: 'BUENA',
+    items: [
+      {
+        producto_id: 1,
+        cantidad: 20
+      },
+      {
+        producto_id: 2,
+        cantidad: 15
+      }
+    ]
+  })
+});
+const result = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/inventario/devoluciones', [
+        'fecha' => '2024-01-20',
+        'vendedor_id' => 5,
+        'tipo' => 'BUENA',
+        'items' => [
+            [
+                'producto_id' => 1,
+                'cantidad' => 20
+            ],
+            [
+                'producto_id' => 2,
+                'cantidad' => 15
+            ]
+        ]
+    ]);
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "message": "Devolución registrada correctamente",
+  "data": {
+    "id": 16,
+    "fecha": "2024-01-20",
+    "vendedor_id": 5,
+    "tipo": "BUENA",
+    "motivo": null,
+    "observaciones": null,
+    "estado": "PENDIENTE",
+    "created_at": "2024-01-20 19:00:00"
+  }
+}
+```
+
+<Info>
+  La devolución se crea en estado `PENDIENTE`. El stock NO se actualiza hasta que la devolución sea aceptada mediante el endpoint de actualización de estado.
+</Info>
+
+---
+
+## Actualizar Estado de Devolución
+
+<api method="PUT" path="/api/inventario/devoluciones/estado/{id}" />
+
+Actualiza el estado de una devolución pendiente. Si se acepta, actualiza automáticamente el stock y registra los movimientos correspondientes.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la devolución
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="estado" type="string" required>
+  Nuevo estado de la devolución. Valores permitidos: `ACEPTADA`, `RECHAZADA`
+</ParamField>
+
+### Comportamiento por Estado
+
+#### ACEPTADA
+Cuando se acepta una devolución:
+1. Se actualiza el campo `devuelto` en el `StockVendedor`
+2. Si es tipo `BUENA`: Se incrementa el stock en la ruma original con movimiento `DEVOLUCION_BUENA`
+3. Si es tipo `MALA`: Se registra movimiento `DEVOLUCION_MALA` pero NO incrementa stock de productos buenos
+4. La ruma de destino se determina automáticamente buscando la última ruma desde donde salió el producto
+
+#### RECHAZADA
+Cuando se rechaza una devolución:
+1. Solo se actualiza el estado a `RECHAZADA`
+2. NO se realizan movimientos de stock
+3. El producto permanece bajo responsabilidad del vendedor
+
+<Warning>
+  Una vez que una devolución es aceptada o rechazada, NO puede volver a procesarse. Asegúrate de verificar los items antes de aceptar.
+</Warning>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.fabricamarie.com/api/inventario/devoluciones/estado/16" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "ACEPTADA"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/devoluciones/estado/16', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    estado: 'ACEPTADA'
+  })
+});
+const result = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->put('https://api.fabricamarie.com/api/inventario/devoluciones/estado/16', [
+        'estado' => 'ACEPTADA'
+    ]);
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "message": "Estado actualizado correctamente"
+}
+```
+
+### Error: Devolución Ya Procesada
+
+```json
+{
+  "error": "La devolución ya fue procesada."
+}
+```
+
+### Error: Ruma No Encontrada
+
+```json
+{
+  "error": "No se encontró ruma previa para el producto 5"
+}
+```
+
+---
+
+## Flujo Completo de Devolución
+
+### 1. Vendedor Registra Devolución
+
+```javascript
+// El vendedor registra productos que devuelve
+const devolucion = await registrarDevolucion({
+  fecha: '2024-01-20',
+  vendedor_id: 5,
+  tipo: 'BUENA',
+  items: [
+    { producto_id: 1, cantidad: 20 }
+  ]
+});
+// Estado: PENDIENTE
+```
+
+### 2. Almacenero Revisa y Acepta
+
+```javascript
+// El almacenero revisa físicamente los productos
+// y acepta la devolución
+await actualizarEstadoDevolucion(devolucion.id, {
+  estado: 'ACEPTADA'
+});
+// Se actualiza automáticamente:
+// - Stock en ruma (+20 unidades)
+// - Stock vendedor (devuelto +20)
+// - Movimiento DEVOLUCION_BUENA registrado
+```
+
+### 3. En Caso de Rechazo
+
+```javascript
+// Si el producto no cumple condiciones
+await actualizarEstadoDevolucion(devolucion.id, {
+  estado: 'RECHAZADA'
+});
+// El vendedor mantiene responsabilidad del producto
+```
+
+---
+
+## Casos de Uso
+
+<Accordion title="Producto No Vendido al Final del Día">
+  El vendedor devuelve productos en buen estado que no logró vender. Se registra como devolución tipo `BUENA` y al ser aceptada, el stock regresa al almacén.
+</Accordion>
+
+<Accordion title="Producto Dañado en Ruta">
+  El vendedor devuelve productos que se dañaron durante el transporte o distribución. Se registra como devolución tipo `MALA`. Al aceptarse, se registra la pérdida pero no incrementa el stock de productos buenos.
+</Accordion>
+
+<Accordion title="Cliente Rechaza Pedido">
+  Si un cliente rechaza un pedido después de que el vendedor lo tiene en su poder, se devuelve como `BUENA` si el producto está en condiciones óptimas.
+</Accordion>
+
+<Accordion title="Verificación de Calidad">
+  El almacenero puede rechazar devoluciones si el producto no cumple con los estándares de calidad requeridos, aunque el vendedor lo reporte como `BUENA`.
+</Accordion>
+
+---
+
+## Integración con Stock de Vendedor
+
+Las devoluciones están integradas con el módulo de stock de vendedores:
+
+- **Campo `devuelto`**: Se incrementa automáticamente en `StockVendedor` cuando se acepta una devolución
+- **Relación con Salidas**: El sistema busca la última salida del producto para determinar la ruma de destino
+- **Trazabilidad**: Cada devolución genera un movimiento de stock con referencia al documento de devolución
+
+### Consultar Stock Devuelto
+
+```javascript
+// Ver cuánto ha devuelto un vendedor de un producto
+const stockVendedor = await obtenerStockVendedor(vendedor_id, producto_id);
+console.log(`Cantidad entregada: ${stockVendedor.cantidad}`);
+console.log(`Cantidad devuelta: ${stockVendedor.devuelto}`);
+console.log(`En poder del vendedor: ${stockVendedor.cantidad - stockVendedor.devuelto}`);
+```

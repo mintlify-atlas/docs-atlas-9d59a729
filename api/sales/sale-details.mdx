@@ -1,0 +1,419 @@
+---
+title: 'Detalles y Gestión de Ventas'
+description: 'Endpoints para consultar, actualizar, confirmar y anular ventas'
+---
+
+## Ver Detalles de Venta
+
+<Note>
+  Obtiene información completa de una venta específica incluyendo todas sus relaciones.
+</Note>
+
+### Endpoint
+
+```
+GET /api/ventas/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la venta a consultar
+</ParamField>
+
+### Respuesta
+
+<ResponseField name="venta" type="object">
+  Objeto completo de la venta con todas sus relaciones
+  
+  <Expandable title="Propiedades">
+    <ResponseField name="id" type="integer">
+      ID de la venta
+    </ResponseField>
+    
+    <ResponseField name="codigo" type="string">
+      Código único de la venta
+    </ResponseField>
+    
+    <ResponseField name="cliente" type="object">
+      Información completa del cliente
+    </ResponseField>
+    
+    <ResponseField name="vendedor" type="object">
+      Información del vendedor con usuario asociado
+    </ResponseField>
+    
+    <ResponseField name="items" type="array">
+      Lista de items con información del producto
+    </ResponseField>
+    
+    <ResponseField name="movimientosStock" type="array">
+      Movimientos de stock relacionados
+    </ResponseField>
+    
+    <ResponseField name="movimientosCaja" type="array">
+      Movimientos de caja asociados
+    </ResponseField>
+    
+    <ResponseField name="cuenta" type="object">
+      Cuenta por cobrar (si es venta a crédito)
+      - `abonos`: Lista de abonos realizados
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X GET "https://api.fabricamarie.com/api/ventas/1523" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "venta": {
+    "id": 1523,
+    "codigo": "VTA-001523",
+    "cliente_id": 45,
+    "vendedor_id": 12,
+    "fecha": "2026-03-11 10:30:45",
+    "tipo_pago": "CREDITO",
+    "adelanto": 500.00,
+    "total_neto": 1500.00,
+    "estado": "CONFIRMADA",
+    "cliente": {
+      "id": 45,
+      "razon_social": "Distribuidora El Sol S.A.",
+      "telefono": "555-1234"
+    },
+    "vendedor": {
+      "id": 12,
+      "usuario": {
+        "id": 8,
+        "nombre": "Carlos Mendoza"
+      }
+    },
+    "items": [
+      {
+        "id": 3041,
+        "producto_id": 101,
+        "cantidad": 10,
+        "precio_unitario": 100.00,
+        "subtotal": 1000.00,
+        "producto": {
+          "id": 101,
+          "nombre": "Producto A",
+          "codigo": "PROD-A"
+        }
+      }
+    ],
+    "cuenta": {
+      "id": 450,
+      "monto_total": 1500.00,
+      "saldo": 1000.00,
+      "estado": "PENDIENTE",
+      "abonos": [
+        {
+          "id": 120,
+          "monto": 500.00,
+          "fecha": "2026-03-11",
+          "metodo_pago": "EFECTIVO"
+        }
+      ]
+    }
+  }
+}
+```
+
+```json Error 404 - No encontrada
+{
+  "message": "No query results for model [App\\Models\\Venta] 1523"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Confirmar Venta
+
+<Warning>
+  Solo se pueden confirmar ventas en estado BORRADOR. Esta acción descuenta el stock físicamente y registra movimientos de caja.
+</Warning>
+
+### Endpoint
+
+```
+POST /api/ventas/{id}/confirmar
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la venta a confirmar
+</ParamField>
+
+### Comportamiento
+
+Al confirmar una venta:
+1. Valida que la venta esté en estado BORRADOR
+2. Convierte las reservas de stock en descontados reales
+3. Actualiza el stock del vendedor y de salida
+4. Registra movimiento de caja:
+   - **CONTADO**: Ingreso por el total_neto
+   - **CREDITO**: Ingreso por el adelanto
+5. Cambia el estado de la venta a CONFIRMADA
+
+### Validación de Stock
+
+- Si el usuario tiene permiso `stock.negativo`, permite confirmar con stock insuficiente
+- Si no tiene el permiso, rechaza la confirmación si el stock disponible es menor a la cantidad solicitada
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X POST "https://api.fabricamarie.com/api/ventas/1523/confirmar" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Venta confirmada correctamente",
+  "venta_id": 1523
+}
+```
+
+```json Error 500 - Estado incorrecto
+{
+  "message": "Solo se pueden confirmar ventas en borrador"
+}
+```
+
+```json Error 500 - Stock insuficiente
+{
+  "message": "Stock insuficiente para el producto 101"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Actualizar Venta
+
+<Warning>
+  Solo se pueden actualizar ventas en estado BORRADOR.
+</Warning>
+
+### Endpoint
+
+```
+PUT /api/ventas/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la venta a actualizar
+</ParamField>
+
+### Parámetros del Body
+
+<ParamField body="cliente_id" type="integer">
+  ID del cliente
+</ParamField>
+
+<ParamField body="tipo_pago" type="string">
+  Tipo de pago: CONTADO o CREDITO
+</ParamField>
+
+<ParamField body="fecha" type="string">
+  Fecha de la venta
+</ParamField>
+
+<ParamField body="items" type="array">
+  Lista de items actualizados (reemplaza los anteriores)
+  
+  <Expandable title="Estructura">
+    <ParamField body="items[].producto_id" type="integer">
+      ID del producto
+    </ParamField>
+    
+    <ParamField body="items[].cantidad" type="number">
+      Cantidad del producto
+    </ParamField>
+    
+    <ParamField body="items[].precio_unitario" type="number">
+      Precio unitario
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Comportamiento
+
+1. Valida que la venta esté en BORRADOR
+2. Actualiza los campos principales
+3. Elimina todos los items anteriores
+4. Crea nuevos items con los datos proporcionados
+5. Recalcula el total_neto automáticamente
+
+<CodeGroup>
+
+```json Solicitud
+{
+  "cliente_id": 45,
+  "tipo_pago": "CREDITO",
+  "fecha": "2026-03-11",
+  "items": [
+    {
+      "producto_id": 101,
+      "cantidad": 15,
+      "precio_unitario": 100.00
+    }
+  ]
+}
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Venta actualizada correctamente",
+  "venta_id": 1523,
+  "total_neto": 1500.00
+}
+```
+
+```json Error 500 - Estado incorrecto
+{
+  "message": "Solo se pueden editar ventas en borrador"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Eliminar Venta
+
+<Warning>
+  Solo se pueden eliminar ventas en estado BORRADOR. Esta acción libera las reservas de stock.
+</Warning>
+
+### Endpoint
+
+```
+DELETE /api/ventas/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la venta a eliminar
+</ParamField>
+
+### Comportamiento
+
+1. Valida que la venta esté en BORRADOR
+2. Libera las reservas de stock
+3. Elimina los items de la venta
+4. Elimina el registro de la venta
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X DELETE "https://api.fabricamarie.com/api/ventas/1523" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Venta eliminada correctamente"
+}
+```
+
+```json Error 500 - Estado incorrecto
+{
+  "message": "Solo se pueden eliminar ventas en borrador"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Anular Venta
+
+<Warning>
+  Anula una venta confirmada. Esta operación revierte todos los movimientos de stock y caja.
+</Warning>
+
+### Endpoint
+
+```
+POST /api/ventas/{id}/anular
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la venta a anular
+</ParamField>
+
+### Comportamiento
+
+La anulación es manejada por el VentaService y realiza:
+- Reversión de movimientos de stock
+- Reversión de movimientos de caja
+- Actualización del estado a ANULADA
+- Registro del usuario que anula
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X POST "https://api.fabricamarie.com/api/ventas/1523/anular" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Venta anulada correctamente",
+  "venta_id": 1523
+}
+```
+
+</CodeGroup>
+
+## Endpoints Relacionados
+
+- [Crear Venta](/api/sales/create-sale) - Crea una nueva venta
+- [Listar Ventas](/api/sales/list-sales) - Lista todas las ventas
+- [Reportes](/api/sales/reports) - Genera reportes de ventas

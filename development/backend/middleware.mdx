@@ -1,0 +1,591 @@
+---
+title: "Middleware y Autorización"
+description: "Sistema de middleware, autenticación con Sanctum y control de acceso basado en roles y permisos"
+icon: "shield"
+---
+
+El sistema Fabrica Marie ERP utiliza Laravel Sanctum para autenticación de API y un sistema personalizado de roles y permisos para autorización.
+
+## Autenticación con Laravel Sanctum
+
+Laravel Sanctum proporciona autenticación basada en tokens para APIs SPA y aplicaciones móviles.
+
+### Configuración de Sanctum
+
+La configuración de Sanctum está en `bootstrap/app.php`:
+
+```php bootstrap/app.php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->api(prepend: [
+        \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'throttle:api',
+        \Illuminate\Routing\Middleware\SubstituteBindings::class,
+    ]);
+    
+    // Middleware personalizados
+    $middleware->alias([
+        'permiso' => \App\Http\Middleware\CheckPermiso::class,
+        'role' => \App\Http\Middleware\CheckRole::class,
+        'caja.abierta' => \App\Http\Middleware\CajaAbierta::class,
+    ]);
+})
+```
+
+### Flujo de Autenticación
+
+<Steps>
+  <Step title="Login del usuario">
+    El cliente envía credenciales al endpoint `/api/login`:
+    
+    ```json Solicitud
+    POST /api/login
+    {
+      "username": "vendedor1",
+      "password": "password123"
+    }
+    ```
+    
+    El servidor valida y retorna un token:
+    
+    ```json Respuesta
+    {
+      "token": "1|abc123def456...",
+      "user": {
+        "id": 1,
+        "username": "vendedor1",
+        "nombre": "Juan Pérez",
+        "roles": ["VENDEDOR"]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Almacenar el token">
+    El cliente guarda el token (localStorage, secure storage, etc.)
+  </Step>
+
+  <Step title="Solicitudes autenticadas">
+    Incluir el token en el header `Authorization`:
+    
+    ```bash
+    curl -X GET http://localhost:8000/api/ventas \
+      -H "Authorization: Bearer 1|abc123def456..."
+    ```
+  </Step>
+</Steps>
+
+### Implementación en el Controlador
+
+```php app/Http/Controllers/Api/AuthController.php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Models\Usuario;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+
+class AuthController extends Controller
+{
+    public function login(Request $request)
+    {
+        $request->validate([
+            'username' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $usuario = Usuario::where('username', $request->username)
+            ->where('activo', true)
+            ->first();
+
+        if (!$usuario || !Hash::check($request->password, $usuario->password_hash)) {
+            throw ValidationException::withMessages([
+                'username' => ['Las credenciales son incorrectas.'],
+            ]);
+        }
+
+        // Crear token
+        $token = $usuario->createToken('api-token')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $usuario->load('roles'),
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Sesión cerrada exitosamente'
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json([
+            'user' => $request->user()->load('roles.permisos')
+        ]);
+    }
+}
+```
+
+## Middleware Personalizados
+
+El sistema cuenta con tres middleware personalizados para control de acceso:
+
+### CheckRole - Verificar Roles
+
+Verifica que el usuario tenga uno de los roles especificados.
+
+```php app/Http/Middleware/CheckRole.php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CheckRole
+{
+    public function handle(Request $request, Closure $next, ...$roles): Response
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado'], 401);
+        }
+
+        if (!$user->roles()->whereIn('nombre', $roles)->exists()) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        return $next($request);
+    }
+}
+```
+
+**Uso en rutas:**
+
+```php routes/api.php
+// Requiere que el usuario sea ADMIN, GERENTE o CAJERO
+Route::prefix('caja')
+    ->middleware(['auth:sanctum', 'role:ADMIN,GERENTE,CAJERO'])
+    ->group(function () {
+        Route::get('/', [CajaController::class, 'getCaja']);
+        Route::post('/abrir', [CajaController::class, 'abrir']);
+    });
+```
+
+<Info>
+Puedes pasar múltiples roles separados por comas. Si el usuario tiene **cualquiera** de los roles, se le permite el acceso.
+</Info>
+
+### CheckPermiso - Verificar Permisos
+
+Verifica que el usuario tenga un permiso específico a través de sus roles.
+
+```php app/Http/Middleware/CheckPermiso.php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CheckPermiso
+{
+    public function handle(Request $request, Closure $next, $permiso): Response
+    {
+        $user = $request->user();
+
+        if (!$user->permisos()->where('codigo', $permiso)->exists()) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        return $next($request);
+    }
+}
+```
+
+**Uso en rutas:**
+
+```php routes/api.php
+Route::prefix('admin')
+    ->middleware(['auth:sanctum', 'role:ADMIN'])
+    ->group(function () {
+        
+        // Solo usuarios con permiso 'ver_roles'
+        Route::get('/roles', [RolController::class, 'index'])
+            ->middleware('permiso:ver_roles');
+        
+        // Solo usuarios con permiso 'crear_rol'
+        Route::post('/roles', [RolController::class, 'store'])
+            ->middleware('permiso:crear_rol');
+        
+        // Solo usuarios con permiso 'asignar_permisos'
+        Route::put('/roles/{id}/permisos', [RolController::class, 'updatePermisos'])
+            ->middleware('permiso:asignar_permisos');
+    });
+```
+
+**Permisos disponibles en el sistema:**
+- `ver_roles`
+- `crear_rol`
+- `editar_rol`
+- `asignar_permisos`
+- `editar_venta`
+- `eliminar_venta`
+- `anular_abono`
+- `cerrar_caja`
+- `ver_reporte_caja`
+
+### CajaAbierta - Verificar Caja Activa
+
+Verifica que exista una caja abierta para realizar operaciones.
+
+```php app/Http/Middleware/CajaAbierta.php
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Models\Caja;
+use Closure;
+use Illuminate\Http\Request;
+
+class CajaAbierta
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $caja = Caja::where('fecha', now()->toDateString())
+            ->where('estado', 'ABIERTA')
+            ->first();
+
+        if (!$caja) {
+            return response()->json([
+                'message' => 'No existe una caja abierta para el usuario'
+            ], 403);
+        }
+
+        // Guardamos la caja para usarla luego en el controlador
+        $request->attributes->set('caja', $caja);
+
+        return $next($request);
+    }
+}
+```
+
+**Uso en rutas:**
+
+```php routes/api.php
+// Operaciones que requieren caja abierta
+Route::prefix('ventas')
+    ->middleware(['auth:sanctum', 'role:VENDEDOR,CAJERO'])
+    ->group(function () {
+        
+        // Crear venta requiere caja abierta
+        Route::post('/', [VentaController::class, 'store'])
+            ->middleware('caja.abierta');
+        
+        // Anular venta requiere caja abierta
+        Route::post('/{id}/anular', [VentaController::class, 'anular'])
+            ->middleware(['permiso:eliminar_venta', 'caja.abierta']);
+    });
+```
+
+**Acceder a la caja en el controlador:**
+
+```php
+public function store(Request $request)
+{
+    // Obtener la caja del request
+    $caja = $request->attributes->get('caja');
+    
+    // Usar la caja en la lógica
+    MovimientoCaja::create([
+        'caja_id' => $caja->id,
+        // ...
+    ]);
+}
+```
+
+## Combinando Middleware
+
+Puedes combinar múltiples middleware para crear reglas de acceso complejas:
+
+```php routes/api.php
+// Requiere:
+// 1. Estar autenticado
+// 2. Tener rol ADMIN o GERENTE
+// 3. Tener permiso 'ver_reporte_caja'
+Route::get('/caja/reporte/fecha', [CajaController::class, 'reportePorFecha'])
+    ->middleware([
+        'auth:sanctum',
+        'role:ADMIN,GERENTE',
+        'permiso:ver_reporte_caja'
+    ]);
+
+// Requiere:
+// 1. Estar autenticado
+// 2. Tener rol VENDEDOR o CAJERO
+// 3. Tener una caja abierta
+Route::post('/ventas', [VentaController::class, 'store'])
+    ->middleware([
+        'auth:sanctum',
+        'role:VENDEDOR,CAJERO',
+        'caja.abierta'
+    ]);
+```
+
+## Sistema de Roles y Permisos
+
+### Estructura de la Base de Datos
+
+```
+usuarios
+  ↓ (usuario_rol)
+roles
+  ↓ (rol_permiso)
+permisos
+```
+
+### Roles del Sistema
+
+<CardGroup cols={2}>
+  <Card title="ADMIN" icon="crown">
+    Acceso completo al sistema
+  </Card>
+  <Card title="GERENTE" icon="user-tie">
+    Gestión y reportes ejecutivos
+  </Card>
+  <Card title="VENDEDOR" icon="cart-shopping">
+    Ventas y gestión de clientes
+  </Card>
+  <Card title="CAJERO" icon="cash-register">
+    Operaciones de caja
+  </Card>
+  <Card title="ALMACENERO" icon="warehouse">
+    Gestión de inventario
+  </Card>
+  <Card title="SUPERVISOR" icon="clipboard-check">
+    Supervisión de operaciones
+  </Card>
+  <Card title="MANTENIMIENTO" icon="wrench">
+    Gestión de vehículos
+  </Card>
+  <Card title="FIDELIZACION" icon="heart">
+    Gestión de clientes
+  </Card>
+</CardGroup>
+
+### Asignar Roles a Usuarios
+
+```php
+// En un seeder o controlador
+$usuario = Usuario::find(1);
+
+// Asignar un rol
+$rolVendedor = Rol::where('nombre', 'VENDEDOR')->first();
+$usuario->roles()->attach($rolVendedor->id);
+
+// Asignar múltiples roles
+$usuario->roles()->attach([1, 2, 3]); // IDs de roles
+
+// Verificar si tiene un rol
+if ($usuario->roles()->where('nombre', 'ADMIN')->exists()) {
+    // Es administrador
+}
+
+// Obtener todos los permisos del usuario
+$permisos = $usuario->permisos()->get();
+```
+
+### Asignar Permisos a Roles
+
+```php
+$rol = Rol::where('nombre', 'CAJERO')->first();
+
+// Asignar permisos
+$permisosIds = Permiso::whereIn('codigo', [
+    'ver_reporte_caja',
+    'cerrar_caja'
+])->pluck('id');
+
+$rol->permisos()->sync($permisosIds);
+```
+
+## Protección de Rutas - Ejemplos Reales
+
+### Gestión de Inventario
+
+```php routes/api.php
+Route::prefix('inventario')
+    ->middleware('auth:sanctum')
+    ->middleware('role:ADMIN,ALMACENERO,VENDEDOR,GERENTE')
+    ->group(function () {
+        
+        // Todos pueden ver productos
+        Route::get('/productos', [ProductoController::class, 'index']);
+        
+        // Solo ADMIN y ALMACENERO pueden crear/editar/eliminar
+        Route::post('/productos', [ProductoController::class, 'store'])
+            ->middleware('role:ADMIN,ALMACENERO');
+        
+        Route::put('/productos/{id}', [ProductoController::class, 'update'])
+            ->middleware('role:ADMIN,ALMACENERO');
+        
+        Route::delete('/productos/{id}', [ProductoController::class, 'destroy'])
+            ->middleware('role:ADMIN,ALMACENERO');
+    });
+```
+
+### Gestión de Ventas
+
+```php routes/api.php
+Route::prefix('ventas')
+    ->middleware('auth:sanctum')
+    ->middleware('role:ADMIN,GERENTE,SUPERVISOR,ALMACENERO,VENDEDOR,CAJERO')
+    ->group(function () {
+        
+        Route::get('/', [VentaController::class, 'index']);
+        Route::get('/{id}', [VentaController::class, 'show']);
+        
+        // Crear venta requiere caja abierta
+        Route::post('/', [VentaController::class, 'store'])
+            ->middleware('caja.abierta');
+        
+        // Editar requiere permiso especial
+        Route::put('/{id}', [VentaController::class, 'update'])
+            ->middleware('permiso:editar_venta');
+        
+        // Anular requiere permiso y caja abierta
+        Route::post('/{id}/anular', [VentaController::class, 'anular'])
+            ->middleware(['permiso:eliminar_venta', 'caja.abierta']);
+    });
+```
+
+### Administración
+
+```php routes/api.php
+Route::prefix('admin')
+    ->middleware('auth:sanctum')
+    ->middleware('role:ADMIN')
+    ->group(function () {
+        
+        Route::get('/usuarios', [UsuarioController::class, 'index']);
+        Route::post('/usuarios', [UsuarioController::class, 'store']);
+        
+        // Sistema de roles con permisos granulares
+        Route::get('/roles', [RolController::class, 'index'])
+            ->middleware('permiso:ver_roles');
+        
+        Route::post('/roles', [RolController::class, 'store'])
+            ->middleware('permiso:crear_rol');
+        
+        Route::put('/roles/{id}/permisos', [RolController::class, 'updatePermisos'])
+            ->middleware('permiso:asignar_permisos');
+    });
+```
+
+## Rate Limiting
+
+El sistema incluye limitación de tasa para prevenir abuso:
+
+```php bootstrap/app.php
+RateLimiter::for('api', function (Request $request) {
+    return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+});
+
+RateLimiter::for('login', function (Request $request) {
+    return Limit::perMinute(5)->by($request->ip());
+});
+```
+
+**Aplicar rate limiting:**
+
+```php
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login');
+```
+
+## Mejores Prácticas
+
+<AccordionGroup>
+  <Accordion title="1. Siempre validar en el backend">
+    Nunca confíes solo en validaciones del frontend. Siempre aplica middleware y verifica permisos en el servidor.
+  </Accordion>
+
+  <Accordion title="2. Usa roles para grupos, permisos para acciones">
+    - **Roles**: Agrupa usuarios por función (VENDEDOR, CAJERO)
+    - **Permisos**: Controla acciones específicas (editar_venta, cerrar_caja)
+  </Accordion>
+
+  <Accordion title="3. Combina middleware de forma lógica">
+    ```php
+    // Orden lógico:
+    ->middleware([
+        'auth:sanctum',      // 1. Autenticación
+        'role:VENDEDOR',     // 2. Rol general
+        'permiso:crear_venta', // 3. Permiso específico
+        'caja.abierta'       // 4. Validaciones de negocio
+    ])
+    ```
+  </Accordion>
+
+  <Accordion title="4. Documenta los requisitos de acceso">
+    ```php
+    /**
+     * Anular una venta
+     * 
+     * @middleware auth:sanctum
+     * @middleware role:ADMIN,GERENTE
+     * @middleware permiso:eliminar_venta
+     * @middleware caja.abierta
+     */
+    public function anular(Request $request, $id)
+    {
+        // ...
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="5. Revoca tokens al cambiar contraseña">
+    ```php
+    public function cambiarPassword(Request $request)
+    {
+        // Cambiar contraseña
+        $user->update(['password_hash' => Hash::make($request->new_password)]);
+        
+        // Revocar todos los tokens
+        $user->tokens()->delete();
+        
+        return response()->json(['message' => 'Contraseña actualizada']);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing de Autenticación
+
+Ver la sección de [Testing](./testing) para ejemplos de cómo probar rutas autenticadas.
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Testing" icon="flask" href="./testing">
+    Aprende a probar rutas autenticadas
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/auth/login">
+    Explora todos los endpoints y sus requisitos
+  </Card>
+  <Card title="Base de Datos" icon="database" href="./database">
+    Entiende los modelos de Usuario, Rol y Permiso
+  </Card>
+  <Card title="Setup" icon="wrench" href="./setup">
+    Volver a la guía de configuración
+  </Card>
+</CardGroup>

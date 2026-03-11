@@ -1,0 +1,248 @@
+---
+title: 'Requisitos de Producción'
+description: 'Requisitos del sistema y especificaciones del servidor para desplegar Fabrica Marie ERP en producción'
+---
+
+## Requisitos del Sistema
+
+Antes de instalar Fabrica Marie ERP en un entorno de producción, asegúrate de que tu servidor cumpla con los siguientes requisitos.
+
+### PHP
+
+**Versión requerida:** PHP 8.2 o superior
+
+Extensiones PHP necesarias:
+
+- OpenSSL PHP Extension
+- PDO PHP Extension
+- Mbstring PHP Extension
+- Tokenizer PHP Extension
+- XML PHP Extension
+- Ctype PHP Extension
+- JSON PHP Extension
+- BCMath PHP Extension
+- Fileinfo PHP Extension
+- GD PHP Extension (para procesamiento de imágenes)
+
+```bash
+# Verificar versión de PHP
+php -v
+
+# Verificar extensiones instaladas
+php -m
+```
+
+### Composer
+
+**Versión requerida:** Composer 2.x o superior
+
+Composer es necesario para gestionar las dependencias PHP del proyecto.
+
+```bash
+# Verificar versión de Composer
+composer --version
+```
+
+### Node.js y NPM
+
+**Versión requerida:** Node.js 18.x o superior
+
+Node.js y NPM son necesarios para compilar los assets frontend.
+
+```bash
+# Verificar versión de Node.js
+node -v
+
+# Verificar versión de NPM
+npm -v
+```
+
+### Base de Datos
+
+**MySQL 8.0 o superior** (recomendado)
+
+Configuración mínima de MySQL:
+
+- Tamaño máximo de paquete: `max_allowed_packet = 64M`
+- Modo SQL: `sql_mode = STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION`
+- Charset: `utf8mb4`
+- Collation: `utf8mb4_unicode_ci`
+
+Alternativas soportadas:
+- MariaDB 10.3 o superior
+- PostgreSQL 12 o superior
+
+### Servidor Web
+
+Una de las siguientes opciones:
+
+- **Apache 2.4+** con mod_rewrite habilitado
+- **Nginx 1.18+** (recomendado)
+
+### Certificado SSL
+
+**Requerido para producción**
+
+Se recomienda utilizar certificados SSL gratuitos de:
+- Let's Encrypt (recomendado)
+- Cloudflare SSL
+- Certificados SSL comerciales
+
+## Especificaciones del Servidor
+
+### Configuración Mínima
+
+Adecuada para instalaciones pequeñas (hasta 10 usuarios concurrentes):
+
+<CardGroup cols={2}>
+  <Card title="CPU" icon="microchip">
+    2 núcleos / 2.0 GHz
+  </Card>
+  <Card title="RAM" icon="memory">
+    4 GB
+  </Card>
+  <Card title="Almacenamiento" icon="hard-drive">
+    20 GB SSD
+  </Card>
+  <Card title="Ancho de banda" icon="network-wired">
+    100 Mbps
+  </Card>
+</CardGroup>
+
+### Configuración Recomendada
+
+Para instalaciones medianas (10-50 usuarios concurrentes):
+
+<CardGroup cols={2}>
+  <Card title="CPU" icon="microchip">
+    4 núcleos / 2.5 GHz
+  </Card>
+  <Card title="RAM" icon="memory">
+    8 GB
+  </Card>
+  <Card title="Almacenamiento" icon="hard-drive">
+    50 GB SSD
+  </Card>
+  <Card title="Ancho de banda" icon="network-wired">
+    1 Gbps
+  </Card>
+</CardGroup>
+
+### Configuración Empresarial
+
+Para instalaciones grandes (50+ usuarios concurrentes):
+
+<CardGroup cols={2}>
+  <Card title="CPU" icon="microchip">
+    8+ núcleos / 3.0 GHz
+  </Card>
+  <Card title="RAM" icon="memory">
+    16 GB o más
+  </Card>
+  <Card title="Almacenamiento" icon="hard-drive">
+    100 GB+ SSD NVMe
+  </Card>
+  <Card title="Ancho de banda" icon="network-wired">
+    1 Gbps+
+  </Card>
+</CardGroup>
+
+<Note>
+  Se recomienda usar almacenamiento SSD o NVMe para mejor rendimiento de la base de datos.
+</Note>
+
+## Software Adicional (Opcional)
+
+### Redis
+
+**Versión recomendada:** Redis 6.x o superior
+
+Redis mejora significativamente el rendimiento al utilizarse para caché y sesiones.
+
+```bash
+# Verificar versión de Redis
+redis-cli --version
+```
+
+### Supervisor
+
+Necesario para gestionar workers de colas en segundo plano.
+
+```bash
+# Verificar si Supervisor está instalado
+supervisor --version
+```
+
+### Git
+
+**Versión recomendada:** Git 2.x o superior
+
+Necesario para clonar el repositorio y gestionar actualizaciones.
+
+```bash
+# Verificar versión de Git
+git --version
+```
+
+## Requisitos de Red
+
+### Puertos Requeridos
+
+- **Puerto 80** (HTTP) - Redireccionamiento a HTTPS
+- **Puerto 443** (HTTPS) - Acceso principal a la aplicación
+- **Puerto 3306** (MySQL) - Solo acceso local o red privada
+- **Puerto 6379** (Redis) - Solo acceso local (opcional)
+
+### Firewall
+
+Configuración recomendada:
+
+```bash
+# Permitir SSH
+sudo ufw allow 22/tcp
+
+# Permitir HTTP y HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Bloquear acceso directo a MySQL desde internet
+sudo ufw deny 3306/tcp
+
+# Habilitar firewall
+sudo ufw enable
+```
+
+<Warning>
+  Nunca expongas los puertos de la base de datos (3306) o Redis (6379) directamente a internet.
+</Warning>
+
+## Sistema Operativo
+
+### Sistemas Operativos Soportados
+
+- **Ubuntu 20.04 LTS o superior** (recomendado)
+- **Debian 11 o superior**
+- **CentOS 8 / Rocky Linux 8**
+- **Amazon Linux 2**
+
+<Tip>
+  Se recomienda usar la última versión LTS de Ubuntu Server para mejor soporte y estabilidad.
+</Tip>
+
+## Verificación de Requisitos
+
+Una vez instalado el sistema, puedes verificar que todos los requisitos se cumplan:
+
+```bash
+# Verificar todos los requisitos de PHP
+php artisan about
+
+# Verificar permisos y configuración
+php artisan optimize
+```
+
+## Próximos Pasos
+
+<Card title="Instalación" icon="download" href="/development/deployment/installation">
+  Continúa con la guía de instalación paso a paso
+</Card>

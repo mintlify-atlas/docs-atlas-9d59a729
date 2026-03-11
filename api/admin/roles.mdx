@@ -1,0 +1,615 @@
+---
+title: 'Roles'
+description: 'Gestión de roles y asignación de permisos en Fabrica Marie ERP'
+---
+
+## Listar Roles
+
+<api-endpoint method="GET" endpoint="/api/admin/roles" />
+
+Obtiene la lista de todos los roles del sistema con sus permisos asociados.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token de autenticación obtenido del login
+</ParamField>
+
+### Permisos Requeridos
+
+- Rol: `ADMIN`
+- Permiso: `ver_roles`
+
+### Response
+
+<ResponseField name="data" type="array">
+  Lista de roles del sistema
+  
+  <ResponseField name="id" type="integer">
+    Identificador único del rol
+  </ResponseField>
+  
+  <ResponseField name="nombre" type="string">
+    Nombre del rol (ej: ADMIN, VENDEDOR, ALMACENERO)
+  </ResponseField>
+  
+  <ResponseField name="descripcion" type="string">
+    Descripción detallada del rol y sus responsabilidades
+  </ResponseField>
+  
+  <ResponseField name="activo" type="boolean">
+    Estado del rol (1 = activo, 0 = inactivo)
+  </ResponseField>
+  
+  <ResponseField name="permisos" type="array">
+    Lista de permisos asignados al rol
+    
+    <ResponseField name="id" type="integer">
+      Identificador del permiso
+    </ResponseField>
+    
+    <ResponseField name="codigo" type="string">
+      Código único del permiso (ej: ver_roles, crear_rol)
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Descripción del permiso
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+<CodeGroup>
+```json Response 200
+[
+  {
+    "id": 1,
+    "nombre": "ADMIN",
+    "descripcion": "Administrador del sistema con acceso completo",
+    "activo": 1,
+    "permisos": [
+      {
+        "id": 1,
+        "codigo": "ver_roles",
+        "descripcion": "Ver listado de roles"
+      },
+      {
+        "id": 2,
+        "codigo": "crear_rol",
+        "descripcion": "Crear nuevos roles"
+      },
+      {
+        "id": 3,
+        "codigo": "editar_rol",
+        "descripcion": "Editar roles existentes"
+      },
+      {
+        "id": 4,
+        "codigo": "asignar_permisos",
+        "descripcion": "Asignar permisos a roles"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "nombre": "VENDEDOR",
+    "descripcion": "Vendedor con acceso a módulos de ventas y clientes",
+    "activo": 1,
+    "permisos": [
+      {
+        "id": 10,
+        "codigo": "ver_ventas",
+        "descripcion": "Ver listado de ventas"
+      },
+      {
+        "id": 11,
+        "codigo": "crear_venta",
+        "descripcion": "Registrar nuevas ventas"
+      }
+    ]
+  }
+]
+```
+
+```bash cURL
+curl -X GET \
+  'https://api.fabricamarie.com/api/admin/roles' \
+  -H 'Authorization: Bearer {token}' \
+  -H 'Accept: application/json'
+```
+
+```php PHP
+$client = new \GuzzleHttp\Client();
+
+$response = $client->get('https://api.fabricamarie.com/api/admin/roles', [
+  'headers' => [
+    'Authorization' => 'Bearer ' . $token,
+    'Accept' => 'application/json'
+  ]
+]);
+
+$roles = json_decode($response->getBody());
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/admin/roles', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/json'
+  }
+});
+
+const roles = await response.json();
+```
+</CodeGroup>
+
+---
+
+## Crear Rol
+
+<api-endpoint method="POST" endpoint="/api/admin/roles" />
+
+Crea un nuevo rol en el sistema. Los permisos se asignan posteriormente mediante el endpoint de actualización de permisos.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token de autenticación obtenido del login
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  application/json
+</ParamField>
+
+### Permisos Requeridos
+
+- Rol: `ADMIN`
+- Permiso: `crear_rol`
+
+### Body Parameters
+
+<ParamField body="nombre" type="string" required>
+  Nombre del rol. Debe ser único en el sistema. Se recomienda usar mayúsculas y guiones bajos (ej: SUPERVISOR_VENTAS).
+</ParamField>
+
+<ParamField body="descripcion" type="string" optional>
+  Descripción detallada del rol, sus responsabilidades y funciones principales.
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Mensaje de confirmación de la creación del rol
+</ResponseField>
+
+<ResponseField name="rol" type="object">
+  Datos del rol recién creado
+  
+  <ResponseField name="id" type="integer">
+    Identificador único del rol
+  </ResponseField>
+  
+  <ResponseField name="nombre" type="string">
+    Nombre del rol
+  </ResponseField>
+  
+  <ResponseField name="descripcion" type="string">
+    Descripción del rol
+  </ResponseField>
+  
+  <ResponseField name="activo" type="boolean">
+    Estado del rol (siempre 1 al crearse)
+  </ResponseField>
+</ResponseField>
+
+<CodeGroup>
+```json Request Body
+{
+  "nombre": "SUPERVISOR_VENTAS",
+  "descripcion": "Supervisor de equipo de ventas con capacidad de gestión y reportes"
+}
+```
+
+```json Response 201
+{
+  "message": "Rol creado correctamente",
+  "rol": {
+    "id": 10,
+    "nombre": "SUPERVISOR_VENTAS",
+    "descripcion": "Supervisor de equipo de ventas con capacidad de gestión y reportes",
+    "activo": 1
+  }
+}
+```
+
+```json Error 422 - Validación
+{
+  "message": "The nombre has already been taken.",
+  "errors": {
+    "nombre": [
+      "The nombre has already been taken."
+    ]
+  }
+}
+```
+
+```bash cURL
+curl -X POST \
+  'https://api.fabricamarie.com/api/admin/roles' \
+  -H 'Authorization: Bearer {token}' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "nombre": "SUPERVISOR_VENTAS",
+    "descripcion": "Supervisor de equipo de ventas con capacidad de gestión y reportes"
+  }'
+```
+
+```php PHP
+$client = new \GuzzleHttp\Client();
+
+$response = $client->post('https://api.fabricamarie.com/api/admin/roles', [
+  'headers' => [
+    'Authorization' => 'Bearer ' . $token,
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json'
+  ],
+  'json' => [
+    'nombre' => 'SUPERVISOR_VENTAS',
+    'descripcion' => 'Supervisor de equipo de ventas con capacidad de gestión y reportes'
+  ]
+]);
+
+$result = json_decode($response->getBody());
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/admin/roles', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    nombre: 'SUPERVISOR_VENTAS',
+    descripcion: 'Supervisor de equipo de ventas con capacidad de gestión y reportes'
+  })
+});
+
+const result = await response.json();
+```
+</CodeGroup>
+
+---
+
+## Ver Detalle de Rol
+
+<api-endpoint method="GET" endpoint="/api/admin/roles/{id}" />
+
+Obtiene la información detallada de un rol específico incluyendo todos sus permisos asignados.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token de autenticación obtenido del login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  ID del rol a consultar
+</ParamField>
+
+### Permisos Requeridos
+
+- Rol: `ADMIN`
+- Permiso: `ver_roles`
+
+### Response
+
+<ResponseField name="id" type="integer">
+  Identificador único del rol
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Nombre del rol
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Descripción del rol
+</ResponseField>
+
+<ResponseField name="activo" type="boolean">
+  Estado del rol
+</ResponseField>
+
+<ResponseField name="permisos" type="array">
+  Lista de permisos asignados al rol
+  
+  <ResponseField name="id" type="integer">
+    ID del permiso
+  </ResponseField>
+  
+  <ResponseField name="codigo" type="string">
+    Código del permiso
+  </ResponseField>
+  
+  <ResponseField name="descripcion" type="string">
+    Descripción del permiso
+  </ResponseField>
+</ResponseField>
+
+<CodeGroup>
+```json Response 200
+{
+  "id": 3,
+  "nombre": "VENDEDOR",
+  "descripcion": "Vendedor con acceso a módulos de ventas y clientes",
+  "activo": 1,
+  "permisos": [
+    {
+      "id": 10,
+      "codigo": "ver_ventas",
+      "descripcion": "Ver listado de ventas"
+    },
+    {
+      "id": 11,
+      "codigo": "crear_venta",
+      "descripcion": "Registrar nuevas ventas"
+    },
+    {
+      "id": 15,
+      "codigo": "ver_clientes",
+      "descripcion": "Ver listado de clientes"
+    }
+  ]
+}
+```
+
+```json Error 404
+{
+  "message": "No query results for model [App\\Models\\Rol] 999"
+}
+```
+
+```bash cURL
+curl -X GET \
+  'https://api.fabricamarie.com/api/admin/roles/3' \
+  -H 'Authorization: Bearer {token}' \
+  -H 'Accept: application/json'
+```
+</CodeGroup>
+
+---
+
+## Actualizar Permisos de Rol
+
+<api-endpoint method="PUT" endpoint="/api/admin/roles/{id}/permisos" />
+
+Asigna o actualiza los permisos de un rol específico. Esta operación reemplaza completamente los permisos existentes con los nuevos proporcionados.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token de autenticación obtenido del login
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  application/json
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  ID del rol a actualizar
+</ParamField>
+
+### Permisos Requeridos
+
+- Rol: `ADMIN`
+- Permiso: `asignar_permisos`
+
+### Body Parameters
+
+<ParamField body="permisos" type="array" required>
+  Array de IDs de permisos a asignar al rol. Los permisos anteriores serán reemplazados completamente.
+  
+  Cada elemento debe ser un ID válido de la tabla `permisos`.
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Mensaje de confirmación de la actualización de permisos
+</ResponseField>
+
+<CodeGroup>
+```json Request Body
+{
+  "permisos": [1, 2, 3, 4, 10, 11, 15]
+}
+```
+
+```json Response 200
+{
+  "message": "Permisos actualizados correctamente"
+}
+```
+
+```json Error 422 - Validación
+{
+  "message": "The selected permisos.0 is invalid.",
+  "errors": {
+    "permisos.0": [
+      "The selected permisos.0 is invalid."
+    ]
+  }
+}
+```
+
+```json Error 404
+{
+  "message": "No query results for model [App\\Models\\Rol] 999"
+}
+```
+
+```bash cURL
+curl -X PUT \
+  'https://api.fabricamarie.com/api/admin/roles/3/permisos' \
+  -H 'Authorization: Bearer {token}' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "permisos": [1, 2, 3, 4, 10, 11, 15]
+  }'
+```
+
+```php PHP
+$client = new \GuzzleHttp\Client();
+
+$response = $client->put('https://api.fabricamarie.com/api/admin/roles/3/permisos', [
+  'headers' => [
+    'Authorization' => 'Bearer ' . $token,
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json'
+  ],
+  'json' => [
+    'permisos' => [1, 2, 3, 4, 10, 11, 15]
+  ]
+]);
+
+$result = json_decode($response->getBody());
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/admin/roles/3/permisos', {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    permisos: [1, 2, 3, 4, 10, 11, 15]
+  })
+});
+
+const result = await response.json();
+```
+</CodeGroup>
+
+<Warning>
+  **Reemplazo Completo**: Este endpoint reemplaza completamente los permisos del rol. Si necesitas mantener permisos existentes, debes incluirlos en el array junto con los nuevos.
+</Warning>
+
+---
+
+## Cambiar Estado de Rol
+
+<api-endpoint method="PUT" endpoint="/api/admin/roles/{id}/estado" />
+
+Activa o desactiva un rol. Los usuarios con roles desactivados mantendrán la asignación pero perderán los permisos asociados.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token de autenticación obtenido del login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  ID del rol a activar/desactivar
+</ParamField>
+
+### Permisos Requeridos
+
+- Rol: `ADMIN`
+- Permiso: `editar_rol`
+
+### Response
+
+<ResponseField name="message" type="string">
+  Mensaje de confirmación del cambio de estado
+</ResponseField>
+
+<ResponseField name="activo" type="boolean">
+  Nuevo estado del rol después del cambio
+</ResponseField>
+
+<CodeGroup>
+```json Response 200 - Activado
+{
+  "message": "Estado del rol actualizado",
+  "activo": 1
+}
+```
+
+```json Response 200 - Desactivado
+{
+  "message": "Estado del rol actualizado",
+  "activo": 0
+}
+```
+
+```json Error 404
+{
+  "message": "No query results for model [App\\Models\\Rol] 999"
+}
+```
+
+```bash cURL
+curl -X PUT \
+  'https://api.fabricamarie.com/api/admin/roles/3/estado' \
+  -H 'Authorization: Bearer {token}' \
+  -H 'Accept: application/json'
+```
+
+```php PHP
+$client = new \GuzzleHttp\Client();
+
+$response = $client->put('https://api.fabricamarie.com/api/admin/roles/3/estado', [
+  'headers' => [
+    'Authorization' => 'Bearer ' . $token,
+    'Accept' => 'application/json'
+  ]
+]);
+
+$result = json_decode($response->getBody());
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/admin/roles/3/estado', {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/json'
+  }
+});
+
+const result = await response.json();
+```
+</CodeGroup>
+
+<Info>
+  **Toggle Automático**: Este endpoint cambia automáticamente el estado del rol al valor opuesto. Si está activo (1) lo desactiva (0), y viceversa.
+</Info>
+
+---
+
+## Roles del Sistema
+
+Los siguientes roles están disponibles en el sistema Fabrica Marie ERP:
+
+| ID | Nombre | Descripción |
+|----|--------|-------------|
+| 1 | ADMIN | Administrador del sistema con acceso completo |
+| 2 | GERENTE | Gerente con acceso a reportes y gestión general |
+| 3 | VENDEDOR | Vendedor con acceso a ventas y clientes |
+| 4 | ALMACENERO | Encargado de almacén e inventario |
+| 5 | CAJERO | Cajero con acceso a módulo de caja |
+| 6 | SUPERVISOR | Supervisor de equipo con acceso a reportes |
+| 7 | RRHH | Recursos Humanos con acceso a gestión de personal |
+| 8 | FIDELIZACION | Encargado de fidelización de clientes |
+| 9 | MANTENIMIENTO | Encargado de mantenimiento de vehículos |

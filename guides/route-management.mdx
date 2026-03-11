@@ -1,0 +1,729 @@
+---
+title: 'Gestión de Rutas'
+description: 'Guía completa para crear rutas, asignar clientes, gestionar vendedores y optimizar recorridos'
+icon: 'route'
+---
+
+## Descripción General
+
+Las rutas son la base de la operación de ventas en Fabrica Marie ERP. Una ruta define el recorrido que un vendedor realizará, los clientes que visitará y el orden de las visitas. Esta guía te ayudará a crear y gestionar rutas eficientemente.
+
+<Info>
+  **Roles con acceso:** ADMIN, GERENTE, SUPERVISOR, VENDEDOR, FIDELIZACION, MANTENIMIENTO
+</Info>
+
+## Conceptos Fundamentales
+
+### ¿Qué es una Ruta?
+
+Una ruta es un conjunto ordenado de clientes que un vendedor visita regularmente. Cada ruta tiene:
+
+- **Nombre identificativo**: Ej: "Ruta Norte A", "Ruta Centro 1"
+- **Descripción**: Detalle de la zona o características
+- **Clientes asignados**: Lista de clientes con orden de visita
+- **Días de operación**: Días de la semana que se recorre
+- **Estado**: Activa o inactiva
+
+### Componentes del Sistema de Rutas
+
+<CardGroup cols={3}>
+  <Card title="Rutas" icon="map" color="#0285c7">
+    Definición del recorrido y zona geográfica
+  </Card>
+  
+  <Card title="Clientes" icon="store" color="#16a34a">
+    Puntos de venta asignados a cada ruta
+  </Card>
+  
+  <Card title="Vendedores" icon="user" color="#dc2626">
+    Personal asignado para recorrer las rutas
+  </Card>
+  
+  <Card title="Vehículos" icon="truck" color="#ca8a04">
+    Transporte utilizado en cada ruta
+  </Card>
+  
+  <Card title="Salidas" icon="box" color="#9333ea">
+    Carga de productos para la ruta del día
+  </Card>
+  
+  <Card title="GPS Tracking" icon="location-dot" color="#ec4899">
+    Seguimiento en tiempo real del recorrido
+  </Card>
+</CardGroup>
+
+## Gestión de Rutas
+
+### Listar Rutas
+
+Consulta todas las rutas activas:
+
+```bash
+GET /api/rutas
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 8,
+    "nombre": "Ruta Norte A",
+    "descripcion": "Zona comercial norte, avenidas principales",
+    "zona": "NORTE",
+    "dias_operacion": "Lunes, Miércoles, Viernes",
+    "activo": true,
+    "clientes_count": 25,
+    "clientes": [
+      {
+        "id": 15,
+        "razon_social": "Bodega El Sol",
+        "direccion": "Av. Los Pinos 456",
+        "orden": 1
+      },
+      {
+        "id": 18,
+        "razon_social": "Bodega Miñita",
+        "direccion": "Jr. Las Flores 789",
+        "orden": 2
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "nombre": "Ruta Sur B",
+    "descripcion": "Zona residencial sur, bodegas de barrio",
+    "zona": "SUR",
+    "dias_operacion": "Martes, Jueves, Sábado",
+    "activo": true,
+    "clientes_count": 18
+  }
+]
+```
+
+### Crear Nueva Ruta
+
+<Steps>
+  <Step title="Definir zona y características">
+    Identifica la zona geográfica y tipo de clientes de la ruta.
+  </Step>
+
+  <Step title="Crear la ruta">
+    ```bash
+    POST /api/rutas
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "nombre": "Ruta Centro Premium",
+      "descripcion": "Clientes de alto volumen en zona céntrica",
+      "zona": "CENTRO",
+      "dias_operacion": "Lunes, Martes, Miércoles, Jueves, Viernes",
+      "activo": true
+    }
+    ```
+  </Step>
+
+  <Step title="Recibir confirmación">
+    ```json
+    {
+      "id": 12,
+      "nombre": "Ruta Centro Premium",
+      "descripcion": "Clientes de alto volumen en zona céntrica",
+      "zona": "CENTRO",
+      "activo": true
+    }
+    ```
+  </Step>
+
+  <Step title="Asignar clientes">
+    Después de crear la ruta, asigna los clientes (ver sección siguiente).
+  </Step>
+</Steps>
+
+### Ver Detalles de una Ruta
+
+```bash
+GET /api/rutas/{id}
+Authorization: Bearer {token}
+```
+
+**Respuesta detallada:**
+
+```json
+{
+  "id": 8,
+  "nombre": "Ruta Norte A",
+  "descripcion": "Zona comercial norte",
+  "zona": "NORTE",
+  "dias_operacion": "Lunes, Miércoles, Viernes",
+  "activo": true,
+  "clientes": [
+    {
+      "id": 15,
+      "razon_social": "Bodega El Sol",
+      "ruc": "20123456789",
+      "direccion": "Av. Los Pinos 456",
+      "telefono": "987654321",
+      "email": "bodegaelsol@email.com",
+      "tipo_cliente": "BODEGA",
+      "limite_credito": 5000.00,
+      "pivot": {
+        "orden": 1
+      },
+      "lat": -12.0464,
+      "lng": -77.0428
+    },
+    {
+      "id": 18,
+      "razon_social": "Bodega Miñita",
+      "direccion": "Jr. Las Flores 789",
+      "pivot": {
+        "orden": 2
+      }
+    }
+  ]
+}
+```
+
+### Actualizar Ruta
+
+```bash
+PUT /api/rutas/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "nombre": "Ruta Norte A - Ampliada",
+  "descripcion": "Zona norte ampliada con nuevos clientes",
+  "dias_operacion": "Lunes, Miércoles, Viernes, Sábado"
+}
+```
+
+### Desactivar Ruta
+
+En lugar de eliminar, desactiva rutas que ya no se usan:
+
+```bash
+DELETE /api/rutas/{id}
+Authorization: Bearer {token}
+```
+
+Esto cambia `activo` a `false`, manteniendo el historial.
+
+## Asignación de Clientes
+
+### Asignar Clientes a Ruta
+
+La asignación de clientes incluye un **orden de visita** que define la secuencia del recorrido:
+
+<Steps>
+  <Step title="Planificar orden de visitas">
+    Determina el orden óptimo considerando:
+    - Proximidad geográfica
+    - Horarios de atención
+    - Volumen de compra
+    - Prioridad del cliente
+  </Step>
+
+  <Step title="Asignar clientes con orden">
+    ```bash
+    POST /api/rutas/{ruta_id}/asignar-clientes
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "clientes": [
+        {
+          "cliente_id": 15,
+          "orden": 1
+        },
+        {
+          "cliente_id": 18,
+          "orden": 2
+        },
+        {
+          "cliente_id": 22,
+          "orden": 3
+        },
+        {
+          "cliente_id": 30,
+          "orden": 4
+        },
+        {
+          "cliente_id": 35,
+          "orden": 5
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Recibir confirmación">
+    ```json
+    {
+      "message": "Clientes asignados a la ruta"
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  El sistema utiliza `sync()`, lo que significa que reemplaza la asignación anterior. Si quieres mantener clientes existentes, debes incluirlos en la nueva lista.
+</Note>
+
+### Reordenar Clientes
+
+Para cambiar el orden de visitas, simplemente reasigna con el nuevo orden:
+
+```bash
+POST /api/rutas/8/asignar-clientes
+Authorization: Bearer {token}
+
+{
+  "clientes": [
+    { "cliente_id": 18, "orden": 1 },  // Ahora es el primero
+    { "cliente_id": 15, "orden": 2 },  // Ahora es el segundo
+    { "cliente_id": 22, "orden": 3 }
+  ]
+}
+```
+
+### Agregar Cliente a Ruta Existente
+
+Para agregar un cliente sin afectar los demás:
+
+1. Consulta los clientes actuales de la ruta
+2. Incluye todos los clientes existentes más el nuevo
+3. Reasigna con el nuevo orden
+
+## Operación de Rutas
+
+### Flujo Diario de una Ruta
+
+<Steps>
+  <Step title="Planificación (Día Anterior)">
+    - Gerencia revisa rutas programadas para mañana
+    - Asigna vendedor y vehículo a cada ruta
+    - Planifica carga de productos
+  </Step>
+
+  <Step title="Preparación (7:00 AM)">
+    - Almacén prepara salida con productos de la ruta
+    - Asigna vendedor y vehículo
+    - Genera documentación
+    
+    ```bash
+    POST /api/inventario/salidas
+    {
+      "fecha": "2026-03-11",
+      "vendedor_id": 5,
+      "vehiculo_id": 2,
+      "ruta_id": 8,
+      "zona": "NORTE",
+      "items": [...]
+    }
+    ```
+  </Step>
+
+  <Step title="Inicio de Recorrido (8:00 AM)">
+    - Vendedor recibe productos y vehículo
+    - Actualiza estado de salida a EN_RUTA
+    - Inicia GPS tracking
+    
+    ```bash
+    PUT /api/inventario/salidas/estado/45
+    { "estado": "EN_RUTA" }
+    ```
+  </Step>
+
+  <Step title="Visitas a Clientes (8:00 AM - 5:00 PM)">
+    Para cada cliente en orden:
+    1. Llegar a ubicación del cliente
+    2. Mostrar productos disponibles
+    3. Tomar pedido
+    4. Crear y confirmar venta
+    5. Cobrar (contado) o abonar (crédito)
+    6. Continuar al siguiente cliente
+  </Step>
+
+  <Step title="Fin de Recorrido (5:30 PM)">
+    - Completar salida
+    - Regresar a fábrica
+    - Entregar productos devueltos
+    - Entregar efectivo a caja
+    
+    ```bash
+    PUT /api/inventario/salidas/estado/45
+    { "estado": "COMPLETADO" }
+    ```
+  </Step>
+</Steps>
+
+### Consultar Ventas por Ruta
+
+Ver todas las ventas realizadas en una ruta específica:
+
+```bash
+GET /api/ventas/reporte?ruta_id=8&fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+### Analizar Rendimiento de Ruta
+
+```bash
+GET /api/rutas/{id}/rendimiento?mes=2026-03
+Authorization: Bearer {token}
+```
+
+**Métricas útiles:**
+- Total vendido en el mes
+- Promedio de venta por visita
+- Número de clientes visitados
+- Tasa de conversión (visitas vs ventas)
+- Productos más vendidos en la ruta
+- Clientes top de la ruta
+
+## Gestión de Clientes
+
+### Listar Clientes
+
+```bash
+GET /api/clientes
+Authorization: Bearer {token}
+```
+
+### Filtrar Clientes por Ruta
+
+```bash
+GET /api/clientes?ruta_id=8
+Authorization: Bearer {token}
+```
+
+### Crear Nuevo Cliente
+
+```bash
+POST /api/clientes
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "razon_social": "Bodega San Martín",
+  "ruc": "20987654321",
+  "direccion": "Av. Grau 234, Cercado",
+  "distrito": "Cercado de Lima",
+  "provincia": "Lima",
+  "departamento": "Lima",
+  "telefono": "987123456",
+  "email": "bodegasanmartin@email.com",
+  "tipo_cliente": "BODEGA",
+  "limite_credito": 3000.00,
+  "dias_credito": 15,
+  "contacto_nombre": "Juan Martínez",
+  "lat": -12.0464,
+  "lng": -77.0428
+}
+```
+
+**Tipos de cliente:**
+- **BODEGA**: Tienda de barrio
+- **SUPERMERCADO**: Cadena o supermercado
+- **RESTAURANTE**: Negocio de comidas
+- **MAYORISTA**: Distribuidor
+- **OTRO**: Otros tipos
+
+### Actualizar Cliente
+
+```bash
+PUT /api/clientes/{id}
+Authorization: Bearer {token}
+
+{
+  "telefono": "987654321",
+  "limite_credito": 5000.00,
+  "email": "nuevo@email.com"
+}
+```
+
+### Ver Historial de Cliente
+
+```bash
+GET /api/clientes/{id}/historial
+Authorization: Bearer {token}
+```
+
+Incluye:
+- Ventas realizadas
+- Cuenta por cobrar actual
+- Historial de pagos
+- Productos más comprados
+- Frecuencia de compra
+
+## Gestión de Vehículos
+
+### Listar Vehículos
+
+```bash
+GET /api/vehiculos
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 2,
+    "placa": "ABC-123",
+    "marca": "Toyota",
+    "modelo": "Hiace",
+    "anio": 2020,
+    "capacidad_carga": 1200,
+    "estado": "OPERATIVO",
+    "vendedores": [
+      {
+        "id": 5,
+        "usuario": {
+          "nombre": "Carlos Mendoza"
+        }
+      }
+    ]
+  }
+]
+```
+
+### Crear Vehículo
+
+```bash
+POST /api/vehiculos
+Authorization: Bearer {token}
+
+{
+  "placa": "XYZ-789",
+  "marca": "Nissan",
+  "modelo": "Urvan",
+  "anio": 2021,
+  "capacidad_carga": 1000,
+  "estado": "OPERATIVO"
+}
+```
+
+### Asignar Vendedor a Vehículo
+
+```bash
+POST /api/vehiculos/{vehiculo_id}/vendedores
+Authorization: Bearer {token}
+
+{
+  "vendedor_id": 5
+}
+```
+
+<Note>
+  Cuando creas una salida, si el vendedor no está asignado al vehículo, el sistema lo asigna automáticamente.
+</Note>
+
+### Estados de Vehículo
+
+- **OPERATIVO**: Disponible para rutas
+- **MANTENIMIENTO**: En reparación
+- **FUERA_SERVICIO**: No disponible
+
+## Seguimiento GPS
+
+### Registrar Punto GPS
+
+Los vendedores envían su ubicación periódicamente:
+
+```bash
+POST /api/gps
+Authorization: Bearer {token}
+
+{
+  "vehiculo_id": 2,
+  "lat": -12.0464,
+  "lng": -77.0428,
+  "velocidad": 45,
+  "timestamp": "2026-03-11 10:30:00"
+}
+```
+
+### Consultar Tracking de Vehículo
+
+```bash
+GET /api/gps?vehiculo_id=2&fecha=2026-03-11
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 1001,
+    "vehiculo_id": 2,
+    "lat": -12.0464,
+    "lng": -77.0428,
+    "velocidad": 45,
+    "timestamp": "2026-03-11 10:30:00"
+  },
+  {
+    "id": 1002,
+    "lat": -12.0498,
+    "lng": -77.0456,
+    "velocidad": 38,
+    "timestamp": "2026-03-11 10:35:00"
+  }
+]
+```
+
+### Ver Ruta en Mapa
+
+Utiliza los puntos GPS para visualizar la ruta recorrida en un mapa:
+
+```javascript
+// Ejemplo con Leaflet o Google Maps
+const puntos = await fetch('/api/gps?vehiculo_id=2&fecha=2026-03-11')
+  .then(res => res.json());
+
+const coordenadas = puntos.map(p => [p.lat, p.lng]);
+
+// Dibujar polyline en el mapa
+const ruta = L.polyline(coordenadas, {color: 'blue'}).addTo(map);
+```
+
+## Optimización de Rutas
+
+### Mejores Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Proximidad Geográfica" icon="map-location-dot">
+    Agrupa clientes cercanos en la misma ruta. Reduce tiempo y combustible.
+  </Card>
+
+  <Card title="Balance de Carga" icon="weight-scale">
+    Distribuye el volumen de ventas equitativamente entre rutas.
+  </Card>
+
+  <Card title="Frecuencia de Visita" icon="calendar">
+    Clientes de alto volumen: visitas frecuentes (3x semana)
+    Clientes regulares: 2x semana
+    Clientes pequeños: 1x semana
+  </Card>
+
+  <Card title="Horarios Optimizados" icon="clock">
+    Considera horarios de apertura y momentos de mayor disponibilidad de clientes.
+  </Card>
+</CardGroup>
+
+### Factores a Considerar
+
+1. **Distancia total del recorrido**: Minimiza kilómetros
+2. **Tiempo de viaje**: Considera tráfico y condiciones
+3. **Capacidad del vehículo**: No sobrecargues
+4. **Horarios de clientes**: Respeta horarios de atención
+5. **Potencial de venta**: Prioriza clientes importantes
+6. **Créditos pendientes**: Programa cobros estratégicamente
+
+### Ejemplo de Ruta Optimizada
+
+```
+Ruta Norte A - 25 clientes
+
+Orden de visita:
+1. Bodega El Sol (8:30 AM) - Cliente grande, alta prioridad
+2. Bodega Miñita (9:00 AM) - Mismo sector
+3. Minimarket San José (9:30 AM) - Ruta directa
+4. Bodega La Esquina (10:00 AM) - Vecina
+...
+25. Bodega Nocturna (5:00 PM) - Última parada antes de retorno
+
+Tiempo total: 8.5 horas
+Distancia: 45 km
+Ventas esperadas: S/ 6,500
+```
+
+## Reportes de Rutas
+
+### Reporte de Eficiencia
+
+Compara rendimiento entre rutas:
+
+```bash
+GET /api/reportes/rutas/eficiencia?mes=2026-03
+Authorization: Bearer {token}
+```
+
+**Métricas:**
+
+| Ruta | Clientes | Visitas | Ventas | Promedio/Visita | Eficiencia |
+|------|----------|---------|--------|-----------------|------------|
+| Norte A | 25 | 90 | S/ 58,500 | S/ 650 | 95% |
+| Sur B | 18 | 72 | S/ 39,600 | S/ 550 | 88% |
+| Centro 1 | 30 | 120 | S/ 84,000 | S/ 700 | 92% |
+
+### Reporte de Cobertura
+
+```bash
+GET /api/reportes/rutas/cobertura
+Authorization: Bearer {token}
+```
+
+Muestra:
+- Clientes sin asignar a ruta
+- Zonas sin cobertura
+- Rutas con baja densidad de clientes
+
+## Buenas Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Revisión Periódica" icon="calendar-check">
+    Revisa y ajusta rutas mensualmente según rendimiento y cambios en clientes.
+  </Card>
+
+  <Card title="Comunicación" icon="comments">
+    Mantén comunicación constante con vendedores sobre optimizaciones de rutas.
+  </Card>
+
+  <Card title="Flexibilidad" icon="arrows-turn-to-dots">
+    Permite ajustes dinámicos según condiciones del día (tráfico, clima, urgencias).
+  </Card>
+
+  <Card title="Documentación" icon="book">
+    Documenta características especiales de cada cliente y ruta.
+  </Card>
+</CardGroup>
+
+## Código de Referencia
+
+**RutaController.php** (`app/Http/Controllers/Api/RutaController.php:51-72`)
+
+```php
+// Asignar clientes con orden
+public function asignarClientes(Request $request, $rutaId)
+{
+    $ruta = Ruta::findOrFail($rutaId);
+
+    $syncData = [];
+    foreach ($request->clientes as $item) {
+        $syncData[$item['cliente_id']] = ['orden' => $item['orden']];
+    }
+
+    $ruta->clientes()->sync($syncData);
+
+    return response()->json(['message' => 'Clientes asignados a la ruta']);
+}
+```
+
+## Siguientes Pasos
+
+<CardGroup cols={2}>
+  <Card title="Proceso de Ventas" icon="cart-shopping" href="/guides/sales-process">
+    Aprende cómo se ejecutan las ventas durante el recorrido.
+  </Card>
+
+  <Card title="Reportes del Sistema" icon="chart-line" href="/guides/reports">
+    Consulta reportes detallados de rendimiento de rutas.
+  </Card>
+</CardGroup>

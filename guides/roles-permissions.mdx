@@ -1,0 +1,475 @@
+---
+title: 'Roles y Permisos'
+description: 'Guía completa sobre el sistema de roles y permisos en Fabrica Marie ERP'
+icon: 'user-shield'
+---
+
+## Descripción General
+
+Fabrica Marie ERP implementa un sistema robusto de control de acceso basado en roles (RBAC). Cada usuario puede tener uno o múltiples roles, y cada rol tiene permisos específicos que determinan qué acciones puede realizar en el sistema.
+
+## Roles del Sistema
+
+El sistema cuenta con 9 roles principales, cada uno diseñado para un área específica de la operación:
+
+<CardGroup cols={3}>
+  <Card title="ADMIN" icon="crown" color="#ea5a0c">
+    Acceso total al sistema
+  </Card>
+  <Card title="ALMACENERO" icon="warehouse" color="#0285c7">
+    Gestión de inventario
+  </Card>
+  <Card title="VENDEDOR" icon="cart-shopping" color="#16a34a">
+    Operaciones de venta
+  </Card>
+  <Card title="GERENTE" icon="briefcase" color="#9333ea">
+    Supervisión y reportes
+  </Card>
+  <Card title="SUPERVISOR" icon="user-tie" color="#dc2626">
+    Control operativo
+  </Card>
+  <Card title="CAJERO" icon="cash-register" color="#ca8a04">
+    Operaciones de caja
+  </Card>
+  <Card title="RRHH" icon="users" color="#4f46e5">
+    Recursos humanos
+  </Card>
+  <Card title="FIDELIZACION" icon="heart" color="#ec4899">
+    Atención al cliente
+  </Card>
+  <Card title="MANTENIMIENTO" icon="wrench" color="#64748b">
+    Gestión de vehículos
+  </Card>
+</CardGroup>
+
+## Permisos por Rol
+
+### ADMIN (Administrador)
+
+<Info>
+  El rol ADMIN tiene acceso completo a todas las funcionalidades del sistema sin restricciones.
+</Info>
+
+**Permisos:**
+- ✅ Gestión completa de usuarios y roles
+- ✅ Configuración del sistema
+- ✅ Acceso a todos los módulos
+- ✅ Gestión de inventario
+- ✅ Ventas y caja
+- ✅ Reportes completos
+- ✅ Recursos humanos
+- ✅ Mantenimiento de vehículos
+- ✅ Gestión de rutas y clientes
+
+**Casos de uso:**
+- Configuración inicial del sistema
+- Creación de usuarios y asignación de roles
+- Resolución de problemas críticos
+- Auditoría y supervisión general
+
+### ALMACENERO (Personal de Almacén)
+
+**Permisos principales:**
+- ✅ Ver y gestionar productos (`/api/inventario/productos`)
+- ✅ Crear y gestionar rumas (`/api/inventario/rumas`)
+- ✅ Registrar movimientos de stock (`/api/inventario/movimientos`)
+- ✅ Crear salidas de fábrica (`/api/inventario/salidas`)
+- ✅ Procesar devoluciones (`/api/inventario/devoluciones`)
+- ✅ Ver alertas de stock mínimo
+- ✅ Consultar kardex de productos
+- ❌ No puede gestionar usuarios ni roles
+- ❌ No tiene acceso a reportes financieros
+
+**Flujo de trabajo típico:**
+
+<Steps>
+  <Step title="Recepción de productos">
+    Registrar ingreso de mercadería a rumas específicas
+  </Step>
+  <Step title="Organización en rumas">
+    Asignar productos a ubicaciones físicas del almacén
+  </Step>
+  <Step title="Preparación de salidas">
+    Crear salidas de fábrica para vendedores con productos de las rumas
+  </Step>
+  <Step title="Procesamiento de devoluciones">
+    Recibir y clasificar productos devueltos (buena/mala condición)
+  </Step>
+  <Step title="Control de stock">
+    Monitorear niveles de inventario y alertas de stock mínimo
+  </Step>
+</Steps>
+
+### VENDEDOR (Personal de Ventas)
+
+**Permisos principales:**
+- ✅ Ver productos disponibles en su stock
+- ✅ Crear y confirmar ventas (`/api/ventas`)
+- ✅ Gestionar clientes (`/api/clientes`)
+- ✅ Ver rutas asignadas (`/api/rutas`)
+- ✅ Registrar devoluciones
+- ✅ Consultar cuentas por cobrar
+- ✅ Ver su propio stock
+- ❌ No puede ver stock de otros vendedores
+- ❌ No puede crear salidas de fábrica
+- ❌ No puede modificar precios base
+
+**Flujo de trabajo típico:**
+
+<Steps>
+  <Step title="Recibir salida de fábrica">
+    El almacén prepara una salida con productos para la ruta del día
+  </Step>
+  <Step title="Realizar ventas">
+    Registrar ventas al contado o crédito durante el recorrido
+  </Step>
+  <Step title="Cobrar abonos">
+    Recolectar pagos de clientes con cuentas por cobrar
+  </Step>
+  <Step title="Devolver productos">
+    Registrar productos no vendidos o en mal estado
+  </Step>
+  <Step title="Cerrar jornada">
+    Entregar productos devueltos y efectivo recolectado
+  </Step>
+</Steps>
+
+### CAJERO (Operador de Caja)
+
+**Permisos principales:**
+- ✅ Abrir caja diaria (`/api/caja/abrir`)
+- ✅ Registrar movimientos de efectivo (`/api/caja/movimientos`)
+- ✅ Recibir pagos de ventas al contado
+- ✅ Registrar abonos a cuentas por cobrar
+- ✅ Cerrar caja con arqueo (`/api/caja/cerrar`)
+- ✅ Ver reportes de caja del día
+- ❌ No puede modificar cierres anteriores
+- ❌ No tiene acceso a reportes de otros cajeros
+
+**Flujo de trabajo típico:**
+
+<Steps>
+  <Step title="Apertura de caja">
+    Abrir caja con monto inicial al inicio del turno
+  </Step>
+  <Step title="Operaciones del día">
+    Las ventas y abonos se registran automáticamente en caja
+  </Step>
+  <Step title="Movimientos manuales">
+    Registrar retiros, depósitos, gastos y viáticos
+  </Step>
+  <Step title="Cierre de caja">
+    Contar efectivo y cerrar caja con arqueo al final del turno
+  </Step>
+  <Step title="Reporte de diferencias">
+    Informar sobrantes o faltantes detectados en el arqueo
+  </Step>
+</Steps>
+
+### GERENTE (Gerencia)
+
+**Permisos principales:**
+- ✅ Acceso a todos los reportes del sistema
+- ✅ Ver todas las ventas y cuentas por cobrar
+- ✅ Supervisar operaciones de inventario
+- ✅ Gestionar clientes y rutas
+- ✅ Ver información de recursos humanos
+- ✅ Supervisar mantenimiento de vehículos
+- ✅ Analizar KPIs y métricas
+- ❌ No puede crear o modificar usuarios (solo ADMIN)
+
+**Reportes disponibles:**
+- Reporte de ventas por período, vendedor, producto
+- Reporte de cuentas por cobrar
+- Reporte de inventario y movimientos
+- Reporte de cierres de caja
+- Análisis de rentabilidad
+- Tracking GPS de vehículos
+
+### SUPERVISOR
+
+**Permisos principales:**
+- ✅ Supervisar ventas de su equipo
+- ✅ Ver reportes operativos
+- ✅ Gestionar rutas y clientes
+- ✅ Aprobar devoluciones
+- ✅ Monitorear GPS de vehículos
+- ✅ Ver estado de mantenimiento
+- ❌ No puede modificar configuraciones del sistema
+
+**Áreas de supervisión:**
+- Operaciones de venta
+- Cumplimiento de rutas
+- Atención al cliente
+- Seguimiento de vehículos
+
+### RRHH (Recursos Humanos)
+
+**Permisos principales:**
+- ✅ Gestionar información salarial de empleados
+- ✅ Consultar datos de personal
+- ✅ Generar reportes de nómina
+- ❌ No tiene acceso a operaciones de venta o inventario
+- ❌ No puede crear usuarios (solo ADMIN)
+
+### FIDELIZACION (Atención al Cliente)
+
+**Permisos principales:**
+- ✅ Gestionar clientes (`/api/clientes`)
+- ✅ Ver historial de compras de clientes
+- ✅ Consultar cuentas por cobrar
+- ✅ Ver información de ventas
+- ❌ No puede crear ventas
+- ❌ No tiene acceso a caja
+
+### MANTENIMIENTO (Gestión de Vehículos)
+
+**Permisos principales:**
+- ✅ Registrar mantenimientos de vehículos
+- ✅ Ver historial de mantenimiento
+- ✅ Consultar GPS y tracking
+- ✅ Gestionar vehículos y conductores
+- ❌ No tiene acceso a ventas ni inventario
+
+## Gestión de Roles
+
+### Listar Roles Disponibles
+
+```bash
+GET /api/roles
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 1,
+    "nombre": "ADMIN",
+    "descripcion": "Administrador del sistema",
+    "activo": true,
+    "permisos": [
+      {
+        "id": 1,
+        "nombre": "usuarios.crear",
+        "descripcion": "Crear usuarios"
+      }
+    ]
+  }
+]
+```
+
+### Ver Detalles de un Rol
+
+```bash
+GET /api/roles/{id}
+Authorization: Bearer {token}
+```
+
+### Asignar Roles a Usuarios
+
+<Note>
+  Solo usuarios con rol ADMIN pueden asignar o modificar roles.
+</Note>
+
+Para asignar roles a un usuario:
+
+```bash
+POST /api/usuarios/{id}/roles
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "roles": [2, 3]  // IDs de los roles a asignar
+}
+```
+
+**Ejemplo de asignación múltiple:**
+
+Un usuario puede tener múltiples roles. Por ejemplo, un gerente podría tener los roles:
+- GERENTE (supervisión general)
+- VENDEDOR (para realizar ventas excepcionalmente)
+- CAJERO (para operar caja cuando sea necesario)
+
+### Actualizar Permisos de un Rol
+
+```bash
+PUT /api/roles/{id}/permisos
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "permisos": [1, 2, 5, 8]  // IDs de permisos
+}
+```
+
+## Middleware de Roles
+
+El sistema utiliza middleware para proteger rutas según roles:
+
+```php
+// Ejemplo de protección de rutas
+Route::middleware('role:ADMIN,GERENTE')->group(function () {
+    // Solo ADMIN y GERENTE pueden acceder
+    Route::get('/reportes/ventas', [VentaController::class, 'reporte']);
+});
+```
+
+### Rutas Protegidas por Rol
+
+<Accordion title="Inventario - ADMIN, ALMACENERO, VENDEDOR, GERENTE">
+- `GET /api/inventario/productos`
+- `POST /api/inventario/productos`
+- `GET /api/inventario/rumas`
+- `POST /api/inventario/movimientos`
+- `GET /api/inventario/salidas`
+- `GET /api/inventario/devoluciones`
+</Accordion>
+
+<Accordion title="Roles y Usuarios - SOLO ADMIN">
+- `GET /api/roles`
+- `POST /api/roles`
+- `PUT /api/roles/{id}/permisos`
+- `GET /api/usuarios`
+- `POST /api/usuarios`
+- `PUT /api/usuarios/{id}`
+</Accordion>
+
+<Accordion title="Clientes - ADMIN, GERENTE, SUPERVISOR, VENDEDOR, FIDELIZACION">
+- `GET /api/clientes`
+- `POST /api/clientes`
+- `PUT /api/clientes/{id}`
+</Accordion>
+
+<Accordion title="Rutas - ADMIN, GERENTE, SUPERVISOR, VENDEDOR, FIDELIZACION, MANTENIMIENTO">
+- `GET /api/rutas`
+- `POST /api/rutas`
+- `PUT /api/rutas/{id}`
+</Accordion>
+
+<Accordion title="Ventas - ADMIN, GERENTE, SUPERVISOR, ALMACENERO, VENDEDOR, CAJERO">
+- `GET /api/ventas`
+- `POST /api/ventas`
+- `PUT /api/ventas/{id}/confirmar`
+</Accordion>
+
+<Accordion title="Caja - ADMIN, GERENTE, CAJERO">
+- `POST /api/caja/abrir`
+- `POST /api/caja/cerrar`
+- `GET /api/caja/reporte`
+</Accordion>
+
+<Accordion title="Cuentas por Cobrar - ADMIN, GERENTE, SUPERVISOR, VENDEDOR, CAJERO">
+- `GET /api/cuentas-por-cobrar`
+- `POST /api/abonos`
+</Accordion>
+
+<Accordion title="RRHH - ADMIN, GERENTE, RRHH">
+- `GET /api/empleados`
+- `GET /api/nomina`
+</Accordion>
+
+<Accordion title="Mantenimiento - ADMIN, GERENTE, SUPERVISOR, MANTENIMIENTO">
+- `GET /api/vehiculos`
+- `POST /api/mantenimientos`
+- `GET /api/gps`
+</Accordion>
+
+## Verificación de Permisos
+
+### En el Frontend
+
+Verifica los roles y permisos del usuario antes de mostrar funcionalidades:
+
+```javascript
+// Obtener información del usuario autenticado
+const userData = await fetch('/api/me', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+}).then(res => res.json());
+
+const roles = userData.roles.map(r => r.nombre);
+const permisos = userData.permisos.map(p => p.nombre);
+
+// Verificar si tiene un rol específico
+if (roles.includes('ADMIN') || roles.includes('GERENTE')) {
+  // Mostrar opción de reportes
+}
+
+// Verificar permiso específico
+if (permisos.includes('ventas.crear')) {
+  // Habilitar botón de nueva venta
+}
+```
+
+### En el Backend
+
+El sistema verifica permisos automáticamente mediante middleware:
+
+```php
+// El middleware 'role' verifica que el usuario tenga uno de los roles especificados
+Route::middleware('role:ADMIN,VENDEDOR')->group(function () {
+    Route::post('/ventas', [VentaController::class, 'store']);
+});
+```
+
+## Buenas Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Principio de Menor Privilegio" icon="shield-halved">
+    Asigna solo los roles necesarios para que cada usuario realice su trabajo. Evita dar acceso ADMIN innecesariamente.
+  </Card>
+
+  <Card title="Roles Múltiples" icon="users-gear">
+    Es válido asignar múltiples roles cuando un usuario tiene responsabilidades mixtas (ej: supervisor que también vende).
+  </Card>
+
+  <Card title="Auditoría" icon="list-check">
+    Revisa periódicamente los roles asignados y revoca accesos de usuarios inactivos o que cambiaron de función.
+  </Card>
+
+  <Card title="Documentación" icon="book">
+    Documenta claramente qué roles debe tener cada posición en tu organización.
+  </Card>
+</CardGroup>
+
+## Código de Referencia
+
+El código fuente de gestión de roles está en:
+
+**RolController.php** (`app/Http/Controllers/Api/RolController.php:12-79`)
+
+```php
+// Asignar permisos a un rol
+public function updatePermisos(Request $request, $id)
+{
+    $data = $request->validate([
+        'permisos' => 'required|array',
+        'permisos.*' => 'exists:permisos,id'
+    ]);
+
+    $rol = Rol::findOrFail($id);
+
+    DB::transaction(function () use ($rol, $data) {
+        $rol->permisos()->sync($data['permisos']);
+    });
+
+    return response()->json([
+        'message' => 'Permisos actualizados correctamente'
+    ]);
+}
+```
+
+## Siguientes Pasos
+
+<CardGroup cols={2}>
+  <Card title="Operaciones de Inventario" icon="warehouse" href="/guides/inventory-operations">
+    Aprende a gestionar productos, rumas y stock.
+  </Card>
+
+  <Card title="Proceso de Ventas" icon="cart-shopping" href="/guides/sales-process">
+    Guía completa del flujo de ventas.
+  </Card>
+</CardGroup>

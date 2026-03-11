@@ -1,0 +1,573 @@
+---
+title: 'Movimientos de Stock'
+description: 'Registro y consulta de movimientos de inventario y kardex'
+---
+
+## Listar Movimientos
+
+<api method="GET" path="/api/inventario/movimientos" />
+
+Obtiene la lista de todos los movimientos de stock registrados, ordenados del más reciente al más antiguo.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único del movimiento
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de movimiento: `INGRESO`, `SALIDA`, `AJUSTE`, `DEVOLUCION_BUENA`, `DEVOLUCION_MALA`, `DESECHO`
+</ResponseField>
+
+<ResponseField name="producto_id" type="integer">
+  ID del producto movido
+</ResponseField>
+
+<ResponseField name="ruma_id" type="integer">
+  ID de la ruma donde ocurrió el movimiento
+</ResponseField>
+
+<ResponseField name="cantidad" type="integer">
+  Cantidad de unidades movidas
+</ResponseField>
+
+<ResponseField name="referencia_tipo" type="string" nullable>
+  Tipo de referencia del documento origen (ej: "DEV_ALMACEN", "DEV_DANADA")
+</ResponseField>
+
+<ResponseField name="referencia_id" type="integer" nullable>
+  ID del documento origen que generó este movimiento
+</ResponseField>
+
+<ResponseField name="motivo" type="string" nullable>
+  Descripción o motivo del movimiento
+</ResponseField>
+
+<ResponseField name="stock_anterior" type="integer">
+  Stock antes del movimiento
+</ResponseField>
+
+<ResponseField name="stock_post_mov" type="integer">
+  Stock después del movimiento
+</ResponseField>
+
+<ResponseField name="user_id" type="integer" nullable>
+  ID del usuario que registró el movimiento
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado del movimiento (ej: "ACTIVO", "ANULADO")
+</ResponseField>
+
+<ResponseField name="created_at" type="timestamp">
+  Fecha y hora de creación del movimiento
+</ResponseField>
+
+<ResponseField name="producto" type="object">
+  Objeto con información completa del producto
+</ResponseField>
+
+<ResponseField name="ruma" type="object">
+  Objeto con información completa de la ruma
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/movimientos" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/movimientos', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const movimientos = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/inventario/movimientos');
+$movimientos = $response->json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 145,
+    "tipo": "INGRESO",
+    "producto_id": 1,
+    "ruma_id": 5,
+    "cantidad": 500,
+    "referencia_tipo": null,
+    "referencia_id": null,
+    "motivo": "Producción diaria",
+    "stock_anterior": 350,
+    "stock_post_mov": 850,
+    "user_id": 1,
+    "estado": "ACTIVO",
+    "created_at": "2024-01-20 14:30:00",
+    "producto": {
+      "id": 1,
+      "sku": "PAN-001",
+      "nombre": "Pan Francés",
+      "marca": "Fabrica Marie"
+    },
+    "ruma": {
+      "id": 5,
+      "codigo": "RUMA-A05",
+      "nombre": "Ruma Principal A5",
+      "ubicacion_fisica": "Almacén Central - Pasillo A - Nivel 5"
+    }
+  },
+  {
+    "id": 144,
+    "tipo": "SALIDA",
+    "producto_id": 1,
+    "ruma_id": 5,
+    "cantidad": 100,
+    "referencia_tipo": null,
+    "referencia_id": null,
+    "motivo": "Despacho de fabrica. Salida #25",
+    "stock_anterior": 450,
+    "stock_post_mov": 350,
+    "user_id": 2,
+    "estado": "ACTIVO",
+    "created_at": "2024-01-20 10:15:00",
+    "producto": {
+      "id": 1,
+      "sku": "PAN-001",
+      "nombre": "Pan Francés",
+      "marca": "Fabrica Marie"
+    },
+    "ruma": {
+      "id": 5,
+      "codigo": "RUMA-A05",
+      "nombre": "Ruma Principal A5",
+      "ubicacion_fisica": "Almacén Central - Pasillo A - Nivel 5"
+    }
+  }
+]
+```
+
+---
+
+## Registrar Movimiento
+
+<api method="POST" path="/api/inventario/movimientos" />
+
+Registra un nuevo movimiento de stock. Este endpoint actualiza automáticamente el stock actual.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="tipo" type="string" required>
+  Tipo de movimiento. Valores permitidos: `INGRESO`, `SALIDA`, `AJUSTE`, `DEVOLUCION_BUENA`, `DEVOLUCION_MALA`, `DESECHO`
+</ParamField>
+
+<ParamField body="producto_id" type="integer" required>
+  ID del producto a mover
+</ParamField>
+
+<ParamField body="ruma_id" type="integer" required>
+  ID de la ruma donde se registra el movimiento
+</ParamField>
+
+<ParamField body="cantidad" type="integer" required>
+  Cantidad de unidades (mínimo 1)
+</ParamField>
+
+<ParamField body="motivo" type="string">
+  Descripción o motivo del movimiento (opcional)
+</ParamField>
+
+### Tipos de Movimiento
+
+- **INGRESO**: Aumenta el stock (producción, compras, traslados entrantes)
+- **SALIDA**: Disminuye el stock (ventas, despachos, traslados salientes)
+- **AJUSTE**: Ajuste de inventario (puede aumentar o disminuir según la cantidad)
+- **DEVOLUCION_BUENA**: Devolución de producto en buen estado (aumenta stock)
+- **DEVOLUCION_MALA**: Devolución de producto dañado (registra pero no aumenta stock bueno)
+- **DESECHO**: Productos dados de baja (disminuye stock)
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.fabricamarie.com/api/inventario/movimientos" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipo": "INGRESO",
+    "producto_id": 1,
+    "ruma_id": 5,
+    "cantidad": 500,
+    "motivo": "Producción diaria del 20/01/2024"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/movimientos', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    tipo: 'INGRESO',
+    producto_id: 1,
+    ruma_id: 5,
+    cantidad: 500,
+    motivo: 'Producción diaria del 20/01/2024'
+  })
+});
+const movimiento = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/inventario/movimientos', [
+        'tipo' => 'INGRESO',
+        'producto_id' => 1,
+        'ruma_id' => 5,
+        'cantidad' => 500,
+        'motivo' => 'Producción diaria del 20/01/2024'
+    ]);
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta (201 Created)
+
+```json
+{
+  "id": 146,
+  "tipo": "INGRESO",
+  "producto_id": 1,
+  "ruma_id": 5,
+  "cantidad": 500,
+  "referencia_tipo": null,
+  "referencia_id": null,
+  "motivo": "Producción diaria del 20/01/2024",
+  "stock_anterior": 850,
+  "stock_post_mov": 1350,
+  "user_id": 1,
+  "estado": "ACTIVO",
+  "created_at": "2024-01-20 15:00:00"
+}
+```
+
+### Errores Comunes
+
+```json
+{
+  "error": "Stock insuficiente para realizar la salida"
+}
+```
+
+---
+
+## Kardex de Producto
+
+<api method="GET" path="/api/inventario/kardex/{productoId}" />
+
+Obtiene el kardex (historial de movimientos) de un producto específico.
+
+### Parámetros de Ruta
+
+<ParamField path="productoId" type="integer" required>
+  ID del producto
+</ParamField>
+
+### Parámetros de Query (Opcionales)
+
+<ParamField query="desde" type="date">
+  Fecha inicial para filtrar (formato: YYYY-MM-DD)
+</ParamField>
+
+<ParamField query="hasta" type="date">
+  Fecha final para filtrar (formato: YYYY-MM-DD)
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="fecha" type="timestamp">
+  Fecha y hora del movimiento
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de movimiento
+</ResponseField>
+
+<ResponseField name="ingreso" type="integer">
+  Cantidad de ingreso (0 si es salida)
+</ResponseField>
+
+<ResponseField name="salida" type="integer">
+  Cantidad de salida (0 si es ingreso)
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  Stock después del movimiento
+</ResponseField>
+
+<ResponseField name="motivo" type="string" nullable>
+  Motivo del movimiento
+</ResponseField>
+
+<ResponseField name="usuario_id" type="integer" nullable>
+  ID del usuario que realizó el movimiento
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/kardex/1?desde=2024-01-01&hasta=2024-01-31" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/kardex/1?desde=2024-01-01&hasta=2024-01-31', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const kardex = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "fecha": "2024-01-15 08:30:00",
+    "tipo": "INGRESO",
+    "ingreso": 500,
+    "salida": 0,
+    "stock": 500,
+    "motivo": "Stock inicial",
+    "usuario_id": 1
+  },
+  {
+    "fecha": "2024-01-15 14:00:00",
+    "tipo": "SALIDA",
+    "ingreso": 0,
+    "salida": 150,
+    "stock": 350,
+    "motivo": "Despacho de fabrica. Salida #20",
+    "usuario_id": 2
+  },
+  {
+    "fecha": "2024-01-20 14:30:00",
+    "tipo": "INGRESO",
+    "ingreso": 500,
+    "salida": 0,
+    "stock": 850,
+    "motivo": "Producción diaria",
+    "usuario_id": 1
+  }
+]
+```
+
+---
+
+## Kardex Valorizado
+
+<api method="GET" path="/api/inventario/kardex-valorizado/{productoId}" />
+
+Obtiene el kardex valorizado de un producto, calculando valores monetarios basados en el precio base.
+
+### Parámetros de Ruta
+
+<ParamField path="productoId" type="integer" required>
+  ID del producto
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="fecha" type="timestamp">
+  Fecha y hora del movimiento
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de movimiento
+</ResponseField>
+
+<ResponseField name="ingreso" type="integer">
+  Cantidad de ingreso
+</ResponseField>
+
+<ResponseField name="salida" type="integer">
+  Cantidad de salida
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  Stock después del movimiento
+</ResponseField>
+
+<ResponseField name="precio_unitario" type="number">
+  Precio base del producto
+</ResponseField>
+
+<ResponseField name="ingreso_valor" type="number">
+  Valor monetario del ingreso (ingreso × precio_unitario)
+</ResponseField>
+
+<ResponseField name="salida_valor" type="number">
+  Valor monetario de la salida (salida × precio_unitario)
+</ResponseField>
+
+<ResponseField name="saldo_valor" type="number">
+  Valor total acumulado en stock
+</ResponseField>
+
+<ResponseField name="motivo" type="string" nullable>
+  Motivo del movimiento
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/kardex-valorizado/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/kardex-valorizado/1', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const kardexValorizado = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "fecha": "2024-01-15 08:30:00",
+    "tipo": "INGRESO",
+    "ingreso": 500,
+    "salida": 0,
+    "stock": 500,
+    "precio_unitario": 15.50,
+    "ingreso_valor": 7750.00,
+    "salida_valor": 0,
+    "saldo_valor": 7750.00,
+    "motivo": "Stock inicial"
+  },
+  {
+    "fecha": "2024-01-15 14:00:00",
+    "tipo": "SALIDA",
+    "ingreso": 0,
+    "salida": 150,
+    "stock": 350,
+    "precio_unitario": 15.50,
+    "ingreso_valor": 0,
+    "salida_valor": 2325.00,
+    "saldo_valor": 5425.00,
+    "motivo": "Despacho de fabrica. Salida #20"
+  }
+]
+```
+
+---
+
+## Anular Movimiento
+
+<api method="DELETE" path="/api/inventario/movimientos/{id}" />
+
+Anula un movimiento de stock y revierte su efecto en el inventario.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del movimiento a anular
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Comportamiento
+
+El sistema reversará automáticamente el efecto del movimiento en el stock:
+- **INGRESO**: Restará la cantidad del stock actual
+- **SALIDA**: Sumará la cantidad al stock actual
+- **DEVOLUCION_BUENA**: Restará la cantidad del stock actual
+- **DESECHO**: Sumará la cantidad al stock actual
+
+<Warning>
+  La anulación fallará si dejaría el stock en negativo.
+</Warning>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE "https://api.fabricamarie.com/api/inventario/movimientos/146" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/movimientos/146', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "message": "Movimiento descartado y stock restablecido correctamente"
+}
+```
+
+### Error: Stock Negativo
+
+```json
+{
+  "error": "La reversión dejaría el stock en negativo"
+}
+```

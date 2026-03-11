@@ -1,0 +1,455 @@
+---
+title: 'Gestión de Vehículos'
+api: 'GET /api/vehiculos'
+---
+
+## Listar Vehículos Activos
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/vehiculos \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/vehiculos', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const vehiculos = await response.json();
+```
+
+```php PHP
+$vehiculos = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/vehiculos')
+    ->json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID del vehículo
+</ResponseField>
+
+<ResponseField name="placa" type="string">
+  Placa del vehículo
+</ResponseField>
+
+<ResponseField name="marca" type="string">
+  Marca del vehículo
+</ResponseField>
+
+<ResponseField name="modelo" type="string">
+  Modelo del vehículo
+</ResponseField>
+
+<ResponseField name="año" type="integer">
+  Año del vehículo
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Color del vehículo
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado del vehículo (DISPONIBLE, EN_USO, MANTENIMIENTO)
+</ResponseField>
+
+<ResponseField name="activo" type="boolean">
+  Indica si el vehículo está activo
+</ResponseField>
+
+<ResponseField name="mantenimientos" type="array">
+  Array de mantenimientos del vehículo (ordenados por fecha programada descendente)
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+[
+  {
+    "id": 1,
+    "placa": "ABC-123",
+    "marca": "Toyota",
+    "modelo": "Hilux",
+    "año": 2022,
+    "color": "Blanco",
+    "estado": "DISPONIBLE",
+    "activo": true,
+    "kilometraje": 45000,
+    "created_at": "2024-01-01T00:00:00.000000Z",
+    "updated_at": "2024-03-15T10:00:00.000000Z",
+    "mantenimientos": [
+      {
+        "id": 5,
+        "tipo": "PREVENTIVO",
+        "descripcion": "Cambio de aceite",
+        "fecha_programada": "2024-03-20",
+        "estado": "PENDIENTE"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "placa": "XYZ-789",
+    "marca": "Nissan",
+    "modelo": "Frontier",
+    "año": 2021,
+    "color": "Gris",
+    "estado": "EN_USO",
+    "activo": true,
+    "kilometraje": 62000,
+    "mantenimientos": []
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Crear Vehículo
+
+<api>POST /api/vehiculos</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/vehiculos \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "placa": "ABC-123",
+    "marca": "Toyota",
+    "modelo": "Hilux",
+    "año": 2022,
+    "color": "Blanco",
+    "estado": "DISPONIBLE",
+    "kilometraje": 0
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/vehiculos', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    placa: 'ABC-123',
+    marca: 'Toyota',
+    modelo: 'Hilux',
+    año: 2022,
+    color: 'Blanco',
+    estado: 'DISPONIBLE',
+    kilometraje: 0
+  })
+});
+
+const vehiculo = await response.json();
+```
+
+```php PHP
+$vehiculo = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/vehiculos', [
+        'placa' => 'ABC-123',
+        'marca' => 'Toyota',
+        'modelo' => 'Hilux',
+        'año' => 2022,
+        'color' => 'Blanco',
+        'estado' => 'DISPONIBLE',
+        'kilometraje' => 0
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField body="placa" type="string" required>
+  Placa del vehículo
+</ParamField>
+
+<ParamField body="marca" type="string" required>
+  Marca del vehículo
+</ParamField>
+
+<ParamField body="modelo" type="string" required>
+  Modelo del vehículo
+</ParamField>
+
+<ParamField body="año" type="integer" required>
+  Año del vehículo
+</ParamField>
+
+<ParamField body="color" type="string" required>
+  Color del vehículo
+</ParamField>
+
+<ParamField body="estado" type="string">
+  Estado del vehículo: DISPONIBLE, EN_USO, o MANTENIMIENTO (por defecto: DISPONIBLE)
+</ParamField>
+
+<ParamField body="kilometraje" type="integer">
+  Kilometraje actual del vehículo
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 3,
+  "placa": "ABC-123",
+  "marca": "Toyota",
+  "modelo": "Hilux",
+  "año": 2022,
+  "color": "Blanco",
+  "estado": "DISPONIBLE",
+  "activo": true,
+  "kilometraje": 0,
+  "created_at": "2024-03-15T14:30:00.000000Z",
+  "updated_at": "2024-03-15T14:30:00.000000Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Obtener Detalles de Vehículo
+
+<api>GET /api/vehiculos/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/vehiculos/1 \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/vehiculos/1', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const vehiculo = await response.json();
+```
+
+```php PHP
+$vehiculo = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/vehiculos/1')
+    ->json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del vehículo
+</ParamField>
+
+<ResponseField name="id" type="integer">
+  ID del vehículo
+</ResponseField>
+
+<ResponseField name="placa" type="string">
+  Placa del vehículo
+</ResponseField>
+
+<ResponseField name="gpsPoints" type="array">
+  Array de puntos GPS registrados para el vehículo
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 1,
+  "placa": "ABC-123",
+  "marca": "Toyota",
+  "modelo": "Hilux",
+  "año": 2022,
+  "color": "Blanco",
+  "estado": "DISPONIBLE",
+  "activo": true,
+  "kilometraje": 45000,
+  "gpsPoints": [
+    {
+      "id": 100,
+      "vehiculo_id": 1,
+      "latitud": -12.0464,
+      "longitud": -77.0428,
+      "velocidad": 45.5,
+      "direccion": "NE",
+      "captured_at": "2024-03-15T14:30:00.000000Z"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+---
+
+## Actualizar Vehículo
+
+<api>PUT /api/vehiculos/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.fabricamarie.com/api/vehiculos/1 \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "EN_USO",
+    "kilometraje": 45500
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/vehiculos/1', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    estado: 'EN_USO',
+    kilometraje: 45500
+  })
+});
+
+const vehiculo = await response.json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del vehículo a actualizar
+</ParamField>
+
+<ParamField body="placa" type="string">
+  Nueva placa del vehículo
+</ParamField>
+
+<ParamField body="marca" type="string">
+  Nueva marca del vehículo
+</ParamField>
+
+<ParamField body="modelo" type="string">
+  Nuevo modelo del vehículo
+</ParamField>
+
+<ParamField body="estado" type="string">
+  Nuevo estado: DISPONIBLE, EN_USO, o MANTENIMIENTO
+</ParamField>
+
+<ParamField body="kilometraje" type="integer">
+  Nuevo kilometraje del vehículo
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 1,
+  "placa": "ABC-123",
+  "marca": "Toyota",
+  "modelo": "Hilux",
+  "año": 2022,
+  "color": "Blanco",
+  "estado": "EN_USO",
+  "activo": true,
+  "kilometraje": 45500,
+  "updated_at": "2024-03-15T15:00:00.000000Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Asignar Vehículo a Vendedor
+
+<api>POST /api/vehiculos/{id}/asignar</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/vehiculos/1/asignar \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vendedor_id": 5
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/vehiculos/1/asignar', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    vendedor_id: 5
+  })
+});
+
+const result = await response.json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del vehículo a asignar
+</ParamField>
+
+<ParamField body="vendedor_id" type="integer" required>
+  ID del vendedor al que se asignará el vehículo
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 1,
+  "placa": "ABC-123",
+  "marca": "Toyota",
+  "modelo": "Hilux",
+  "estado": "EN_USO"
+}
+```
+
+```json Error: Ya Asignado
+{
+  "message": "El vehiculo ya se encuentra asignado al vendedor"
+}
+```
+</ResponseExample>
+
+---
+
+## Desactivar Vehículo
+
+<api>DELETE /api/vehiculos/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.fabricamarie.com/api/vehiculos/1 \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/vehiculos/1', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const result = await response.json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del vehículo a desactivar
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Vehículo desactivado"
+}
+```
+</ResponseExample>
+
+<Note>
+Este endpoint realiza una eliminación suave (soft delete), marcando el vehículo como inactivo en lugar de eliminarlo permanentemente de la base de datos.
+</Note>

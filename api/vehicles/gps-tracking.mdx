@@ -1,0 +1,409 @@
+---
+title: 'Rastreo GPS'
+api: 'GET /api/gps-points'
+---
+
+## Listar Puntos GPS
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/gps-points \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/gps-points', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const gpsPoints = await response.json();
+```
+
+```php PHP
+$gpsPoints = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/gps-points')
+    ->json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID del punto GPS
+</ResponseField>
+
+<ResponseField name="vehiculo_id" type="integer">
+  ID del vehículo asociado
+</ResponseField>
+
+<ResponseField name="vehiculo" type="object">
+  Información del vehículo
+</ResponseField>
+
+<ResponseField name="latitud" type="number">
+  Latitud del punto GPS
+</ResponseField>
+
+<ResponseField name="longitud" type="number">
+  Longitud del punto GPS
+</ResponseField>
+
+<ResponseField name="velocidad" type="number">
+  Velocidad en km/h al momento de captura
+</ResponseField>
+
+<ResponseField name="direccion" type="string">
+  Dirección cardinal (N, S, E, W, NE, NW, SE, SW)
+</ResponseField>
+
+<ResponseField name="captured_at" type="string">
+  Fecha y hora de captura del punto GPS
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+[
+  {
+    "id": 100,
+    "vehiculo_id": 1,
+    "latitud": -12.0464,
+    "longitud": -77.0428,
+    "velocidad": 45.5,
+    "direccion": "NE",
+    "captured_at": "2024-03-15T14:30:00.000000Z",
+    "created_at": "2024-03-15T14:30:05.000000Z",
+    "vehiculo": {
+      "id": 1,
+      "placa": "ABC-123",
+      "marca": "Toyota",
+      "modelo": "Hilux"
+    }
+  },
+  {
+    "id": 99,
+    "vehiculo_id": 2,
+    "latitud": -12.0512,
+    "longitud": -77.0365,
+    "velocidad": 32.0,
+    "direccion": "S",
+    "captured_at": "2024-03-15T14:25:00.000000Z",
+    "created_at": "2024-03-15T14:25:03.000000Z",
+    "vehiculo": {
+      "id": 2,
+      "placa": "XYZ-789",
+      "marca": "Nissan",
+      "modelo": "Frontier"
+    }
+  }
+]
+```
+</ResponseExample>
+
+<Note>
+Los puntos GPS se devuelven ordenados por fecha de captura descendente (más recientes primero).
+</Note>
+
+---
+
+## Registrar Punto GPS
+
+<api>POST /api/gps-points</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/gps-points \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vehiculo_id": 1,
+    "latitud": -12.0464,
+    "longitud": -77.0428,
+    "velocidad": 45.5,
+    "direccion": "NE",
+    "captured_at": "2024-03-15T14:30:00"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/gps-points', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    vehiculo_id: 1,
+    latitud: -12.0464,
+    longitud: -77.0428,
+    velocidad: 45.5,
+    direccion: 'NE',
+    captured_at: '2024-03-15T14:30:00'
+  })
+});
+
+const gpsPoint = await response.json();
+```
+
+```php PHP
+$gpsPoint = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/gps-points', [
+        'vehiculo_id' => 1,
+        'latitud' => -12.0464,
+        'longitud' => -77.0428,
+        'velocidad' => 45.5,
+        'direccion' => 'NE',
+        'captured_at' => '2024-03-15T14:30:00'
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField body="vehiculo_id" type="integer" required>
+  ID del vehículo para el cual se registra el punto GPS
+</ParamField>
+
+<ParamField body="latitud" type="number" required>
+  Latitud del punto GPS (formato decimal, ej: -12.0464)
+</ParamField>
+
+<ParamField body="longitud" type="number" required>
+  Longitud del punto GPS (formato decimal, ej: -77.0428)
+</ParamField>
+
+<ParamField body="velocidad" type="number">
+  Velocidad en km/h al momento de la captura
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Dirección cardinal: N, S, E, W, NE, NW, SE, SW
+</ParamField>
+
+<ParamField body="captured_at" type="string" required>
+  Fecha y hora de captura del punto GPS (formato ISO 8601)
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 101,
+  "vehiculo_id": 1,
+  "latitud": -12.0464,
+  "longitud": -77.0428,
+  "velocidad": 45.5,
+  "direccion": "NE",
+  "captured_at": "2024-03-15T14:30:00.000000Z",
+  "created_at": "2024-03-15T14:30:05.000000Z",
+  "updated_at": "2024-03-15T14:30:05.000000Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Obtener Punto GPS Específico
+
+<api>GET /api/gps-points/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/gps-points/100 \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/gps-points/100', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const gpsPoint = await response.json();
+```
+
+```php PHP
+$gpsPoint = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/gps-points/100')
+    ->json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del punto GPS
+</ParamField>
+
+<ResponseField name="id" type="integer">
+  ID del punto GPS
+</ResponseField>
+
+<ResponseField name="vehiculo" type="object">
+  Información completa del vehículo asociado
+</ResponseField>
+
+<ResponseField name="latitud" type="number">
+  Latitud del punto GPS
+</ResponseField>
+
+<ResponseField name="longitud" type="number">
+  Longitud del punto GPS
+</ResponseField>
+
+<ResponseField name="velocidad" type="number">
+  Velocidad registrada
+</ResponseField>
+
+<ResponseField name="direccion" type="string">
+  Dirección cardinal
+</ResponseField>
+
+<ResponseField name="captured_at" type="string">
+  Fecha y hora de captura
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 100,
+  "vehiculo_id": 1,
+  "latitud": -12.0464,
+  "longitud": -77.0428,
+  "velocidad": 45.5,
+  "direccion": "NE",
+  "captured_at": "2024-03-15T14:30:00.000000Z",
+  "vehiculo": {
+    "id": 1,
+    "placa": "ABC-123",
+    "marca": "Toyota",
+    "modelo": "Hilux",
+    "año": 2022,
+    "estado": "EN_USO"
+  }
+}
+```
+</ResponseExample>
+
+---
+
+## Actualizar Punto GPS
+
+<api>PUT /api/gps-points/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.fabricamarie.com/api/gps-points/100 \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "velocidad": 50.0,
+    "direccion": "N"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/gps-points/100', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    velocidad: 50.0,
+    direccion: 'N'
+  })
+});
+
+const gpsPoint = await response.json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del punto GPS a actualizar
+</ParamField>
+
+<ParamField body="latitud" type="number">
+  Nueva latitud
+</ParamField>
+
+<ParamField body="longitud" type="number">
+  Nueva longitud
+</ParamField>
+
+<ParamField body="velocidad" type="number">
+  Nueva velocidad
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Nueva dirección
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 100,
+  "vehiculo_id": 1,
+  "latitud": -12.0464,
+  "longitud": -77.0428,
+  "velocidad": 50.0,
+  "direccion": "N",
+  "captured_at": "2024-03-15T14:30:00.000000Z",
+  "updated_at": "2024-03-15T15:00:00.000000Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Eliminar Punto GPS
+
+<api>DELETE /api/gps-points/{id}</api>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.fabricamarie.com/api/gps-points/100 \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/gps-points/100', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const result = await response.json();
+```
+
+```php PHP
+$result = Http::withToken($token)
+    ->delete('https://api.fabricamarie.com/api/gps-points/100')
+    ->json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID del punto GPS a eliminar
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Punto GPS eliminado"
+}
+```
+</ResponseExample>
+
+---
+
+## Casos de Uso
+
+El sistema de rastreo GPS permite:
+
+1. **Monitoreo en Tiempo Real**: Seguimiento de la ubicación actual de cada vehículo
+2. **Historial de Rutas**: Consulta de trayectorias pasadas para análisis
+3. **Control de Velocidad**: Registro de velocidades para seguridad vial
+4. **Geolocalización de Ventas**: Correlación de ubicaciones con actividades de venta
+5. **Optimización de Rutas**: Análisis de patrones de desplazamiento
+
+<Tip>
+Para una mejor precisión, se recomienda enviar puntos GPS cada 30-60 segundos cuando el vehículo está en movimiento.
+</Tip>

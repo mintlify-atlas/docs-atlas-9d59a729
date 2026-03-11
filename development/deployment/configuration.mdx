@@ -1,0 +1,551 @@
+---
+title: 'Configuración de Producción'
+description: 'Configuración avanzada del entorno de producción, servidor web, caché y seguridad para Fabrica Marie ERP'
+---
+
+## Variables de Entorno (.env)
+
+La configuración principal de la aplicación se gestiona a través del archivo `.env`.
+
+### Configuración de la Aplicación
+
+```bash
+# Información básica
+APP_NAME="Fabrica Marie ERP"
+APP_ENV=production
+APP_KEY=base64:tu_clave_generada_aqui
+APP_DEBUG=false
+APP_TIMEZONE=America/Mexico_City
+APP_URL=https://tu-dominio.com
+
+# Idioma
+APP_LOCALE=es
+APP_FALLBACK_LOCALE=es
+APP_FAKER_LOCALE=es_MX
+```
+
+<Warning>
+  **Crítico:** Siempre mantén `APP_DEBUG=false` en producción. Habilitarlo expone información sensible del sistema.
+</Warning>
+
+### Configuración de Base de Datos
+
+```bash
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=fabrica_marie_api
+DB_USERNAME=fabricamarie
+DB_PASSWORD=contraseña_segura_aqui
+```
+
+<Tip>
+  Para máxima seguridad, configura un usuario MySQL con permisos limitados solo a la base de datos específica.
+</Tip>
+
+#### Optimizaciones MySQL
+
+Edita el archivo de configuración de MySQL:
+
+```bash
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+```
+
+Agrega o modifica estas configuraciones:
+
+```ini
+[mysqld]
+# Buffer pool (25-50% de la RAM disponible)
+innodb_buffer_pool_size = 2G
+
+# Tamaño de log files
+innodb_log_file_size = 512M
+
+# Conexiones simultáneas
+max_connections = 200
+
+# Query cache (MySQL 5.7)
+query_cache_type = 1
+query_cache_size = 128M
+
+# Tamaño máximo de paquetes
+max_allowed_packet = 64M
+
+# Modo SQL
+sql_mode = STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+
+# Character set
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+```
+
+Reinicia MySQL:
+
+```bash
+sudo systemctl restart mysql
+```
+
+### Configuración de Sesiones
+
+```bash
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+```
+
+<Note>
+  Se recomienda usar `database` o `redis` como driver de sesiones en producción para mejor rendimiento y escalabilidad.
+</Note>
+
+Para usar Redis como almacén de sesiones:
+
+```bash
+SESSION_DRIVER=redis
+SESSION_CONNECTION=default
+```
+
+### Configuración de Caché
+
+```bash
+CACHE_STORE=redis
+CACHE_PREFIX=fabricamarie_cache
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_DB=0
+```
+
+#### Instalar y Configurar Redis
+
+```bash
+# Instalar Redis
+sudo apt install -y redis-server
+
+# Configurar Redis para producción
+sudo nano /etc/redis/redis.conf
+```
+
+Configuraciones recomendadas:
+
+```ini
+# Limitar acceso solo a localhost
+bind 127.0.0.1 ::1
+
+# Requerir contraseña (recomendado)
+requirepass tu_contraseña_redis_segura
+
+# Memoria máxima (ej. 512MB)
+maxmemory 512mb
+maxmemory-policy allkeys-lru
+
+# Persistencia
+save 900 1
+save 300 10
+save 60 10000
+
+# Habilitar modo daemon
+daemonize yes
+```
+
+Reinicia Redis:
+
+```bash
+sudo systemctl restart redis-server
+sudo systemctl enable redis-server
+```
+
+Actualiza `.env` con la contraseña:
+
+```bash
+REDIS_PASSWORD=tu_contraseña_redis_segura
+```
+
+### Configuración de Colas
+
+```bash
+QUEUE_CONNECTION=database
+```
+
+Para producción, considera usar Redis:
+
+```bash
+QUEUE_CONNECTION=redis
+```
+
+### Configuración de Correo
+
+```bash
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=tu-email@gmail.com
+MAIL_PASSWORD=tu_contraseña_de_aplicacion
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@tu-dominio.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+<Tip>
+  Para Gmail, necesitas generar una [contraseña de aplicación](https://support.google.com/accounts/answer/185833) en lugar de usar tu contraseña normal.
+</Tip>
+
+Ejemplos para otros proveedores:
+
+<Tabs>
+  <Tab title="SendGrid">
+    ```bash
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.sendgrid.net
+    MAIL_PORT=587
+    MAIL_USERNAME=apikey
+    MAIL_PASSWORD=tu_api_key_de_sendgrid
+    MAIL_ENCRYPTION=tls
+    ```
+  </Tab>
+  <Tab title="Mailgun">
+    ```bash
+    MAIL_MAILER=mailgun
+    MAILGUN_DOMAIN=tu-dominio.com
+    MAILGUN_SECRET=tu_api_key_de_mailgun
+    MAILGUN_ENDPOINT=api.mailgun.net
+    ```
+  </Tab>
+  <Tab title="AWS SES">
+    ```bash
+    MAIL_MAILER=ses
+    AWS_ACCESS_KEY_ID=tu_access_key
+    AWS_SECRET_ACCESS_KEY=tu_secret_key
+    AWS_DEFAULT_REGION=us-east-1
+    ```
+  </Tab>
+</Tabs>
+
+### Configuración de Logs
+
+```bash
+LOG_CHANNEL=daily
+LOG_LEVEL=error
+LOG_DEPRECATIONS_CHANNEL=null
+```
+
+Opciones de `LOG_CHANNEL`:
+- `daily` - Crea un archivo de log por día (recomendado para producción)
+- `stack` - Múltiples canales
+- `single` - Un solo archivo
+- `syslog` - Usa syslog del sistema
+
+Opciones de `LOG_LEVEL`:
+- `debug` - Todos los mensajes
+- `info` - Información general
+- `warning` - Advertencias
+- `error` - Solo errores (recomendado para producción)
+
+## Configuración del Servidor Web
+
+### Configuración de Nginx
+
+Archivo completo de configuración optimizada:
+
+```nginx
+# /etc/nginx/sites-available/fabricamarie
+
+upstream php-fpm {
+    server unix:/var/run/php/php8.2-fpm.sock;
+}
+
+# Redirigir HTTP a HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name tu-dominio.com www.tu-dominio.com;
+    
+    # Let's Encrypt challenge
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/fabricamarie/public;
+    }
+    
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# Servidor HTTPS principal
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name tu-dominio.com www.tu-dominio.com;
+    root /var/www/fabricamarie/public;
+
+    # Certificados SSL
+    ssl_certificate /etc/letsencrypt/live/tu-dominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tu-dominio.com/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/tu-dominio.com/chain.pem;
+
+    # SSL Configuration (Mozilla Modern)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+
+    # OCSP Stapling
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" always;
+
+    # Charset
+    charset utf-8;
+
+    # Index
+    index index.php index.html;
+
+    # Logging
+    access_log /var/log/nginx/fabricamarie-access.log;
+    error_log /var/log/nginx/fabricamarie-error.log warn;
+
+    # Client body size (para uploads)
+    client_max_body_size 100M;
+
+    # Root location
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP-FPM
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass php-fpm;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        
+        # Timeouts
+        fastcgi_read_timeout 300;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+
+    # Static files caching
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # Deny access to specific files
+    location ~ /(web\.config|composer\.json|composer\.lock|package\.json|\.env) {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # Favicon and robots
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+}
+```
+
+#### Optimización de PHP-FPM
+
+Edita la configuración de PHP-FPM:
+
+```bash
+sudo nano /etc/php/8.2/fpm/pool.d/www.conf
+```
+
+Configuraciones recomendadas:
+
+```ini
+[www]
+user = www-data
+group = www-data
+listen = /var/run/php/php8.2-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+
+# Modo de gestión de procesos
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+pm.max_requests = 500
+
+# Timeouts
+request_terminate_timeout = 300
+
+# Límites de memoria
+php_admin_value[memory_limit] = 256M
+```
+
+Edita php.ini:
+
+```bash
+sudo nano /etc/php/8.2/fpm/php.ini
+```
+
+Configuraciones importantes:
+
+```ini
+max_execution_time = 300
+max_input_time = 300
+memory_limit = 256M
+post_max_size = 100M
+upload_max_filesize = 100M
+
+; OPcache (crítico para rendimiento)
+opcache.enable = 1
+opcache.memory_consumption = 256
+opcache.interned_strings_buffer = 16
+opcache.max_accelerated_files = 10000
+opcache.revalidate_freq = 2
+opcache.fast_shutdown = 1
+
+; Realpath cache
+realpath_cache_size = 4096K
+realpath_cache_ttl = 600
+```
+
+Reinicia PHP-FPM:
+
+```bash
+sudo systemctl restart php8.2-fpm
+```
+
+### Configuración de Apache
+
+Archivo de configuración optimizado:
+
+```apache
+# /etc/apache2/sites-available/fabricamarie.conf
+
+<VirtualHost *:80>
+    ServerName tu-dominio.com
+    ServerAlias www.tu-dominio.com
+    Redirect permanent / https://tu-dominio.com/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName tu-dominio.com
+    ServerAlias www.tu-dominio.com
+    DocumentRoot /var/www/fabricamarie/public
+
+    # SSL Configuration
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/tu-dominio.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/tu-dominio.com/privkey.pem
+
+    # Security Headers
+    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+
+    <Directory /var/www/fabricamarie/public>
+        Options -Indexes +FollowSymLinks -MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Logging
+    ErrorLog ${APACHE_LOG_DIR}/fabricamarie-error.log
+    CustomLog ${APACHE_LOG_DIR}/fabricamarie-access.log combined
+
+    # Compression
+    <IfModule mod_deflate.c>
+        AddOutputFilterByType DEFLATE text/plain
+        AddOutputFilterByType DEFLATE text/html
+        AddOutputFilterByType DEFLATE text/xml
+        AddOutputFilterByType DEFLATE text/css
+        AddOutputFilterByType DEFLATE application/javascript
+        AddOutputFilterByType DEFLATE application/json
+    </IfModule>
+
+    # Caching for static files
+    <IfModule mod_expires.c>
+        ExpiresActive On
+        ExpiresByType image/jpg "access plus 1 year"
+        ExpiresByType image/jpeg "access plus 1 year"
+        ExpiresByType image/gif "access plus 1 year"
+        ExpiresByType image/png "access plus 1 year"
+        ExpiresByType text/css "access plus 1 month"
+        ExpiresByType application/javascript "access plus 1 month"
+    </IfModule>
+</VirtualHost>
+```
+
+## Permisos de Archivos
+
+Configuración correcta de permisos:
+
+```bash
+# Establecer propietario
+sudo chown -R www-data:www-data /var/www/fabricamarie
+
+# Permisos para directorios
+sudo find /var/www/fabricamarie -type d -exec chmod 755 {} \;
+
+# Permisos para archivos
+sudo find /var/www/fabricamarie -type f -exec chmod 644 {} \;
+
+# Permisos especiales para storage y cache
+sudo chmod -R 775 /var/www/fabricamarie/storage
+sudo chmod -R 775 /var/www/fabricamarie/bootstrap/cache
+
+# Si usas ACL (Access Control Lists)
+sudo setfacl -R -m u:www-data:rwx /var/www/fabricamarie/storage
+sudo setfacl -R -m u:www-data:rwx /var/www/fabricamarie/bootstrap/cache
+sudo setfacl -dR -m u:www-data:rwx /var/www/fabricamarie/storage
+sudo setfacl -dR -m u:www-data:rwx /var/www/fabricamarie/bootstrap/cache
+```
+
+<Warning>
+  Nunca uses permisos 777 en producción. Esto representa un grave riesgo de seguridad.
+</Warning>
+
+## Verificación de Configuración
+
+```bash
+# Verificar configuración de Laravel
+php artisan about
+
+# Verificar estado de servicios
+sudo systemctl status nginx
+sudo systemctl status php8.2-fpm
+sudo systemctl status mysql
+sudo systemctl status redis-server
+
+# Probar configuración de Nginx
+sudo nginx -t
+
+# Ver logs en tiempo real
+tail -f /var/www/fabricamarie/storage/logs/laravel.log
+```
+
+## Próximos Pasos
+
+<Card title="Mejores Prácticas de Producción" icon="shield-check" href="/development/deployment/production">
+  Aprende sobre optimización, monitoreo, backups y seguridad avanzada
+</Card>

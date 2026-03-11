@@ -1,0 +1,254 @@
+---
+title: 'Movimientos de Caja'
+api: 'POST /api/caja/movimiento'
+---
+
+## Crear Movimiento de Caja
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/caja/movimiento \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipo": "INGRESO",
+    "monto": 500.00,
+    "categoria": "VENTA",
+    "descripcion": "Pago de cliente",
+    "referencia_tipo": "PEDIDO",
+    "referencia_id": 456
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja/movimiento', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    tipo: 'INGRESO',
+    monto: 500.00,
+    categoria: 'VENTA',
+    descripcion: 'Pago de cliente',
+    referencia_tipo: 'PEDIDO',
+    referencia_id: 456
+  })
+});
+
+const movimiento = await response.json();
+```
+
+```php PHP
+$movimiento = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/caja/movimiento', [
+        'tipo' => 'INGRESO',
+        'monto' => 500.00,
+        'categoria' => 'VENTA',
+        'descripcion' => 'Pago de cliente',
+        'referencia_tipo' => 'PEDIDO',
+        'referencia_id' => 456
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField body="tipo" type="string" required>
+  Tipo de movimiento: `INGRESO` o `EGRESO`
+</ParamField>
+
+<ParamField body="monto" type="number" required>
+  Monto del movimiento
+</ParamField>
+
+<ParamField body="categoria" type="string" required>
+  Categoría del movimiento (ej: VENTA, SALIDA, VIATICO, VUELTO)
+</ParamField>
+
+<ParamField body="descripcion" type="string" required>
+  Descripción detallada del movimiento
+</ParamField>
+
+<ParamField body="referencia_tipo" type="string">
+  Tipo de referencia (ej: PEDIDO, SALIDA, VIATICO)
+</ParamField>
+
+<ParamField body="referencia_id" type="integer">
+  ID de la referencia relacionada
+</ParamField>
+
+<ResponseField name="id" type="integer">
+  ID del movimiento creado
+</ResponseField>
+
+<ResponseField name="caja_id" type="integer">
+  ID de la caja asociada
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de movimiento (INGRESO o EGRESO)
+</ResponseField>
+
+<ResponseField name="monto" type="number">
+  Monto del movimiento
+</ResponseField>
+
+<ResponseField name="categoria" type="string">
+  Categoría del movimiento
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Descripción del movimiento
+</ResponseField>
+
+<ResponseField name="referencia_tipo" type="string">
+  Tipo de referencia
+</ResponseField>
+
+<ResponseField name="referencia_id" type="integer">
+  ID de la referencia
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Fecha y hora de creación
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 789,
+  "caja_id": 123,
+  "tipo": "INGRESO",
+  "monto": 500.00,
+  "categoria": "VENTA",
+  "descripcion": "Pago de cliente",
+  "referencia_tipo": "PEDIDO",
+  "referencia_id": 456,
+  "created_at": "2024-03-15T10:30:00.000000Z",
+  "updated_at": "2024-03-15T10:30:00.000000Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Obtener Todos los Movimientos
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/caja/movimientos \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja/movimientos', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const movimientos = await response.json();
+```
+
+```php PHP
+$movimientos = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/caja/movimientos')
+    ->json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID del movimiento
+</ResponseField>
+
+<ResponseField name="caja" type="object">
+  Información de la caja asociada
+  <expandable>
+    <ResponseField name="id" type="integer">
+      ID de la caja
+    </ResponseField>
+    <ResponseField name="usuario" type="object">
+      Usuario que abrió la caja
+    </ResponseField>
+  </expandable>
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo de movimiento (INGRESO o EGRESO)
+</ResponseField>
+
+<ResponseField name="monto" type="number">
+  Monto del movimiento
+</ResponseField>
+
+<ResponseField name="categoria" type="string">
+  Categoría del movimiento
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Descripción del movimiento
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Fecha y hora de creación (ordenados descendentemente)
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+[
+  {
+    "id": 789,
+    "caja_id": 123,
+    "tipo": "INGRESO",
+    "monto": 500.00,
+    "categoria": "VENTA",
+    "descripcion": "Pago de cliente",
+    "referencia_tipo": "PEDIDO",
+    "referencia_id": 456,
+    "created_at": "2024-03-15T10:30:00.000000Z",
+    "caja": {
+      "id": 123,
+      "fecha": "2024-03-15",
+      "usuario": {
+        "id": 45,
+        "nombre": "Juan Pérez"
+      }
+    }
+  },
+  {
+    "id": 788,
+    "caja_id": 123,
+    "tipo": "EGRESO",
+    "monto": 200.00,
+    "categoria": "SALIDA",
+    "descripcion": "Compra de insumos",
+    "referencia_tipo": "SALIDA",
+    "referencia_id": 12,
+    "created_at": "2024-03-15T09:15:00.000000Z",
+    "caja": {
+      "id": 123,
+      "fecha": "2024-03-15",
+      "usuario": {
+        "id": 45,
+        "nombre": "Juan Pérez"
+      }
+    }
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Categorías de Movimientos
+
+Las categorías más comunes de movimientos incluyen:
+
+- **VENTA**: Ingresos por ventas
+- **SALIDA**: Egresos por salidas de caja
+- **VIATICO**: Egresos por viáticos a vendedores
+- **VUELTO**: Ingresos por vueltos de salidas o viáticos liquidados
+- **AJUSTE**: Ajustes de caja
+- **DEPOSITO**: Depósitos bancarios
+- **RETIRO**: Retiros de efectivo

@@ -1,97 +1,165 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Bienvenido a Fabrica Marie ERP"
+description: "Sistema ERP completo para gestión de fábrica de galletas con inventario, ventas, rutas, vehículos y recursos humanos"
 ---
 
-## Setting up
+<div className="flex items-center justify-center py-12">
+  <div className="text-center">
+    <h1 className="text-5xl font-bold mb-4" style={{color: '#040404'}}>Fabrica Marie ERP</h1>
+    <p className="text-xl mb-8" style={{color: '#1a1a1a'}}>Sistema integral para la gestión de tu fábrica de galletas</p>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## Comienza Ahora
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Configura tu sistema ERP en minutos y comienza a gestionar tu operación.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Inicio Rápido"
+    icon="rocket"
+    href="/quickstart"
   >
-    Edit your docs locally and preview them in real time.
+    Aprende a configurar y usar el sistema en pocos pasos
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Arquitectura"
+    icon="sitemap"
+    href="/architecture"
   >
-    Customize the design and colors of your site to match your brand.
+    Comprende la estructura del sistema y sus componentes
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
+</CardGroup>
+
+## Características Principales
+
+Explora las funcionalidades clave del sistema ERP.
+
+<CardGroup cols={2}>
+  <Card
+    title="Gestión de Inventario"
+    icon="boxes-stacked"
+    href="/features/inventory-management"
   >
-    Organize your docs to help users find what they need and succeed with your product.
+    Control completo de productos, rumas y movimientos de stock
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
+    title="Sistema de Ventas"
+    icon="cart-shopping"
+    href="/features/sales-management"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Registro de ventas, cobros y cuentas por cobrar
   </Card>
   <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
+    title="Control de Caja"
+    icon="cash-register"
+    href="/features/cash-register"
   >
-    Add sample code to demonstrate how to use your product.
+    Apertura, cierre y movimientos de caja diarios
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Gestión de Clientes"
+    icon="users"
+    href="/features/client-management"
   >
-    Display images and other media.
+    CRM integrado con historial de compras y cuentas
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Planificación de Rutas"
+    icon="route"
+    href="/features/route-planning"
   >
-    Write once and reuse across your docs.
+    Organiza rutas de reparto y asigna clientes
   </Card>
-</Columns>
+  <Card
+    title="Rastreo de Vehículos"
+    icon="truck"
+    href="/features/vehicle-tracking"
+  >
+    Control de flota vehicular y mantenimiento
+  </Card>
+  <Card
+    title="Monitoreo GPS"
+    icon="location-dot"
+    href="/features/gps-monitoring"
+  >
+    Seguimiento en tiempo real de vehículos
+  </Card>
+  <Card
+    title="Recursos Humanos"
+    icon="user-tie"
+    href="/features/hr-management"
+  >
+    Gestión de empleados, viáticos y bonos
+  </Card>
+</CardGroup>
 
-## Need inspiration?
+## API de Referencia
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+Integra y extiende el sistema con nuestra API REST completa.
+
+<CardGroup cols={2}>
+  <Card
+    title="Autenticación"
+    icon="key"
+    href="/api/auth/login"
+  >
+    Sistema de autenticación con Laravel Sanctum
+  </Card>
+  <Card
+    title="Endpoints de Inventario"
+    icon="warehouse"
+    href="/api/inventory/products"
+  >
+    APIs para gestión de productos y stock
+  </Card>
+  <Card
+    title="Endpoints de Ventas"
+    icon="file-invoice-dollar"
+    href="/api/sales/create-sale"
+  >
+    APIs para registrar y consultar ventas
+  </Card>
+  <Card
+    title="Administración"
+    icon="user-shield"
+    href="/api/admin/users"
+  >
+    Gestión de usuarios, roles y permisos
+  </Card>
+</CardGroup>
+
+## Guías de Usuario
+
+Aprende a utilizar cada módulo del sistema de manera efectiva.
+
+<CardGroup cols={2}>
+  <Card
+    title="Autenticación y Acceso"
+    icon="right-to-bracket"
+    href="/guides/authentication"
+  >
+    Cómo iniciar sesión y gestionar tu cuenta
+  </Card>
+  <Card
+    title="Roles y Permisos"
+    icon="shield-halved"
+    href="/guides/roles-permissions"
+  >
+    Sistema de control de acceso basado en roles
+  </Card>
+  <Card
+    title="Operaciones de Inventario"
+    icon="box"
+    href="/guides/inventory-operations"
+  >
+    Flujos de trabajo para almaceneros
+  </Card>
+  <Card
+    title="Proceso de Ventas"
+    icon="money-bill-wave"
+    href="/guides/sales-process"
+  >
+    Guía completa del ciclo de ventas
+  </Card>
+</CardGroup>

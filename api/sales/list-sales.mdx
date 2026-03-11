@@ -1,0 +1,249 @@
+---
+title: 'Listar Ventas'
+api: 'GET /api/ventas'
+description: 'Obtiene el listado de ventas con filtros opcionales'
+---
+
+## Autenticación
+
+Requiere autenticación mediante token Bearer.
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+## Parámetros de Consulta (Filtros)
+
+Todos los parámetros son opcionales y se pueden combinar para refinar la búsqueda.
+
+<ParamField query="fecha_desde" type="string">
+  Fecha de inicio del rango de búsqueda (formato: Y-m-d, ejemplo: 2026-03-01)
+</ParamField>
+
+<ParamField query="fecha_hasta" type="string">
+  Fecha de fin del rango de búsqueda (formato: Y-m-d, ejemplo: 2026-03-31)
+</ParamField>
+
+<ParamField query="cliente_id" type="integer">
+  Filtrar por ID del cliente
+</ParamField>
+
+<ParamField query="vendedor_id" type="integer">
+  Filtrar por ID del vendedor
+</ParamField>
+
+<ParamField query="producto_id" type="integer">
+  Filtrar ventas que contengan un producto específico
+</ParamField>
+
+<ParamField query="tipo_pago" type="string">
+  Filtrar por tipo de pago. Valores: `CONTADO`, `CREDITO`
+</ParamField>
+
+## Respuesta
+
+Retorna un array de ventas ordenadas por fecha descendente.
+
+<ResponseField name="[]" type="array">
+  Array de objetos de venta
+  
+  <Expandable title="Propiedades de cada venta">
+    <ResponseField name="id" type="integer">
+      ID único de la venta
+    </ResponseField>
+    
+    <ResponseField name="codigo" type="string">
+      Código único de la venta
+    </ResponseField>
+    
+    <ResponseField name="fecha" type="string">
+      Fecha de la venta
+    </ResponseField>
+    
+    <ResponseField name="tipo_pago" type="string">
+      Tipo de pago (CONTADO/CREDITO)
+    </ResponseField>
+    
+    <ResponseField name="total_neto" type="number">
+      Total neto de la venta
+    </ResponseField>
+    
+    <ResponseField name="estado" type="string">
+      Estado de la venta
+    </ResponseField>
+    
+    <ResponseField name="cliente" type="object">
+      Información del cliente
+      - `id`: ID del cliente
+      - `razon_social`: Nombre o razón social
+    </ResponseField>
+    
+    <ResponseField name="vendedor" type="object">
+      Información del vendedor
+      - `id`: ID del vendedor
+      - `usuario`: Objeto con datos del usuario
+        - `id`: ID del usuario
+        - `nombre`: Nombre del vendedor
+    </ResponseField>
+    
+    <ResponseField name="items" type="array">
+      Lista de items de la venta
+      - `id`: ID del item
+      - `cantidad`: Cantidad vendida
+      - `precio_unitario`: Precio unitario
+      - `subtotal`: Subtotal del item
+      - `producto`: Objeto con `id` y `nombre` del producto
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Ordenamiento
+
+Los resultados se ordenan automáticamente por:
+1. Fecha descendente (más recientes primero)
+2. ID descendente (como criterio secundario)
+
+<CodeGroup>
+
+```bash Solicitud sin filtros
+curl -X GET "https://api.fabricamarie.com/api/ventas" \
+  -H "Authorization: Bearer {token}"
+```
+
+```bash Solicitud con filtros
+curl -X GET "https://api.fabricamarie.com/api/ventas?fecha_desde=2026-03-01&fecha_hasta=2026-03-11&tipo_pago=CREDITO&vendedor_id=12" \
+  -H "Authorization: Bearer {token}"
+```
+
+```bash Filtrar por producto
+curl -X GET "https://api.fabricamarie.com/api/ventas?producto_id=101" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+[
+  {
+    "id": 1523,
+    "codigo": "VTA-001523",
+    "fecha": "2026-03-11",
+    "tipo_pago": "CREDITO",
+    "metodo_pago_detalle": "Transferencia",
+    "adelanto": 500.00,
+    "descuento": 50.00,
+    "total_neto": 1500.00,
+    "estado": "CONFIRMADA",
+    "cliente": {
+      "id": 45,
+      "razon_social": "Distribuidora El Sol S.A."
+    },
+    "vendedor": {
+      "id": 12,
+      "usuario_id": 8,
+      "usuario": {
+        "id": 8,
+        "nombre": "Carlos Mendoza"
+      }
+    },
+    "items": [
+      {
+        "id": 3041,
+        "venta_id": 1523,
+        "producto_id": 101,
+        "cantidad": 10,
+        "precio_unitario": 100.00,
+        "subtotal": 1000.00,
+        "producto": {
+          "id": 101,
+          "nombre": "Producto A"
+        }
+      },
+      {
+        "id": 3042,
+        "venta_id": 1523,
+        "producto_id": 102,
+        "cantidad": 5,
+        "precio_unitario": 110.00,
+        "subtotal": 550.00,
+        "producto": {
+          "id": 102,
+          "nombre": "Producto B"
+        }
+      }
+    ]
+  },
+  {
+    "id": 1522,
+    "codigo": "VTA-001522",
+    "fecha": "2026-03-10",
+    "tipo_pago": "CONTADO",
+    "metodo_pago_detalle": null,
+    "adelanto": 0,
+    "descuento": 0,
+    "total_neto": 850.00,
+    "estado": "CONFIRMADA",
+    "cliente": {
+      "id": 32,
+      "razon_social": "Tienda La Esperanza"
+    },
+    "vendedor": {
+      "id": 12,
+      "usuario_id": 8,
+      "usuario": {
+        "id": 8,
+        "nombre": "Carlos Mendoza"
+      }
+    },
+    "items": [
+      {
+        "id": 3040,
+        "venta_id": 1522,
+        "producto_id": 103,
+        "cantidad": 17,
+        "precio_unitario": 50.00,
+        "subtotal": 850.00,
+        "producto": {
+          "id": 103,
+          "nombre": "Producto C"
+        }
+      }
+    ]
+  }
+]
+```
+
+```json Respuesta vacía
+[]
+```
+
+</CodeGroup>
+
+## Relaciones Incluidas
+
+El endpoint incluye automáticamente las siguientes relaciones:
+- **cliente**: Datos básicos del cliente (id, razon_social)
+- **vendedor**: Datos del vendedor y su usuario asociado
+- **items**: Todos los items de la venta
+- **producto**: Información del producto de cada item (id, nombre)
+
+## Casos de Uso
+
+### Reporte de ventas del día
+```
+GET /api/ventas?fecha_desde=2026-03-11&fecha_hasta=2026-03-11
+```
+
+### Ventas a crédito de un cliente
+```
+GET /api/ventas?cliente_id=45&tipo_pago=CREDITO
+```
+
+### Ventas de un vendedor en el mes
+```
+GET /api/ventas?vendedor_id=12&fecha_desde=2026-03-01&fecha_hasta=2026-03-31
+```
+
+## Endpoints Relacionados
+
+- [Crear Venta](/api/sales/create-sale) - Crea una nueva venta
+- [Detalles de Venta](/api/sales/sale-details) - Obtiene detalles completos
+- [Reportes de Ventas](/api/sales/reports) - Genera reportes con resúmenes

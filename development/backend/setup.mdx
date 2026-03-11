@@ -1,0 +1,349 @@
+---
+title: "Configuración del Entorno de Desarrollo"
+description: "Guía para configurar el entorno de desarrollo del backend de Fabrica Marie ERP"
+icon: "wrench"
+---
+
+Esta guía te ayudará a configurar tu entorno de desarrollo local para trabajar con el backend del sistema Fabrica Marie ERP, construido con Laravel 11 y PHP 8.2.
+
+## Requisitos Previos
+
+Antes de comenzar, asegúrate de tener instalados los siguientes componentes:
+
+<CardGroup cols={2}>
+  <Card title="PHP 8.2+" icon="php">
+    Versión mínima requerida de PHP
+  </Card>
+  <Card title="Composer" icon="box">
+    Gestor de dependencias de PHP
+  </Card>
+  <Card title="MySQL/MariaDB" icon="database">
+    Base de datos relacional
+  </Card>
+  <Card title="Git" icon="git">
+    Control de versiones
+  </Card>
+</CardGroup>
+
+### Verificar Instalación de PHP
+
+<CodeGroup>
+```bash Verificar versión de PHP
+php -v
+```
+
+```bash Verificar extensiones requeridas
+php -m | grep -E 'pdo|mbstring|openssl|tokenizer|xml|ctype|json'
+```
+</CodeGroup>
+
+Debes ver PHP versión 8.2 o superior.
+
+## Instalación Paso a Paso
+
+<Steps>
+  <Step title="Clonar el Repositorio">
+    Clona el repositorio del proyecto en tu máquina local:
+    
+    ```bash
+    git clone <repository-url>
+    cd fabrica-marie-api
+    ```
+  </Step>
+
+  <Step title="Instalar Dependencias con Composer">
+    Instala todas las dependencias de PHP definidas en `composer.json`:
+    
+    <CodeGroup>
+    ```bash Instalación estándar
+    composer install
+    ```
+    
+    ```bash Instalación sin dependencias de desarrollo
+    composer install --no-dev
+    ```
+    </CodeGroup>
+    
+    Esto instalará Laravel 11, Laravel Sanctum para autenticación API, y Pest PHP para testing.
+  </Step>
+
+  <Step title="Configurar Variables de Entorno">
+    Copia el archivo de ejemplo `.env.example` y renómbralo a `.env`:
+    
+    ```bash
+    cp .env.example .env
+    ```
+    
+    Edita el archivo `.env` con tu configuración local:
+    
+    ```bash .env
+    APP_NAME="Fabrica Marie API"
+    APP_ENV=local
+    APP_DEBUG=true
+    APP_URL=http://localhost:8000
+    
+    # Configuración de Base de Datos
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=fabrica_marie_api
+    DB_USERNAME=root
+    DB_PASSWORD=tu_password
+    
+    # Sesiones y Cache
+    SESSION_DRIVER=database
+    CACHE_STORE=database
+    QUEUE_CONNECTION=database
+    ```
+    
+    <Warning>
+      Asegúrate de **no compartir** tu archivo `.env` en el repositorio. Este archivo contiene información sensible.
+    </Warning>
+  </Step>
+
+  <Step title="Generar la Clave de Aplicación">
+    Laravel requiere una clave de encriptación única para tu aplicación:
+    
+    ```bash
+    php artisan key:generate
+    ```
+    
+    Esto generará automáticamente una clave `APP_KEY` en tu archivo `.env`.
+  </Step>
+
+  <Step title="Crear la Base de Datos">
+    Crea una nueva base de datos MySQL para el proyecto:
+    
+    <CodeGroup>
+    ```sql MySQL CLI
+    mysql -u root -p
+    CREATE DATABASE fabrica_marie_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    EXIT;
+    ```
+    
+    ```bash phpMyAdmin
+    # O usa phpMyAdmin para crear la base de datos con:
+    # - Nombre: fabrica_marie_api
+    # - Cotejamiento: utf8mb4_unicode_ci
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Ejecutar Migraciones">
+    Ejecuta las migraciones para crear todas las tablas necesarias:
+    
+    ```bash
+    php artisan migrate
+    ```
+    
+    Esto creará las siguientes tablas en tu base de datos:
+    - `usuarios` - Usuarios del sistema
+    - `roles` y `permisos` - Sistema de autorización
+    - `productos` - Catálogo de productos
+    - `clientes` - Información de clientes
+    - `ventas` - Registro de ventas
+    - `cajas` - Control de cajas
+    - `vehiculos` - Gestión de vehículos
+    - `rutas` - Rutas de distribución
+    - Y muchas más...
+    
+    <Info>
+      Si necesitas reiniciar la base de datos desde cero, usa:
+      ```bash
+      php artisan migrate:fresh
+      ```
+      <Warning>Este comando **eliminará todos los datos** existentes.</Warning>
+    </Info>
+  </Step>
+
+  <Step title="Ejecutar Seeders">
+    Pobla la base de datos con datos iniciales necesarios:
+    
+    <CodeGroup>
+    ```bash Ejecutar todos los seeders
+    php artisan db:seed
+    ```
+    
+    ```bash Ejecutar un seeder específico
+    php artisan db:seed --class=UsuarioAdminSeeder
+    ```
+    
+    ```bash Migrar y poblar en un solo comando
+    php artisan migrate:fresh --seed
+    ```
+    </CodeGroup>
+    
+    Los seeders incluidos son:
+    - `PermisoSeeder` - Crea todos los permisos del sistema
+    - `RolSeeder` - Crea los roles (ADMIN, VENDEDOR, CAJERO, etc.)
+    - `RolPermisoSeeder` - Asigna permisos a roles
+    - `UsuarioAdminSeeder` - Crea el usuario administrador por defecto
+    
+    <Tip>
+      Después de ejecutar los seeders, tendrás un usuario administrador para comenzar.
+    </Tip>
+  </Step>
+
+  <Step title="Iniciar el Servidor de Desarrollo">
+    Inicia el servidor de desarrollo de Laravel:
+    
+    ```bash
+    php artisan serve
+    ```
+    
+    Por defecto, la aplicación estará disponible en `http://localhost:8000`
+    
+    <CodeGroup>
+    ```bash Puerto personalizado
+    php artisan serve --port=8080
+    ```
+    
+    ```bash Host personalizado
+    php artisan serve --host=0.0.0.0 --port=8000
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Verificar la Instalación">
+    Prueba que la API esté funcionando correctamente:
+    
+    ```bash
+    curl http://localhost:8000/api/test
+    ```
+    
+    Deberías ver una respuesta JSON:
+    ```json
+    {
+      "message": "API funcionando correctamente",
+      "status": "ok"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Configuración de Laravel Sanctum
+
+Laravel Sanctum se usa para la autenticación de la API. La configuración ya está incluida en el proyecto:
+
+```php app/Models/Usuario.php
+use Laravel\Sanctum\HasApiTokens;
+
+class Usuario extends Authenticatable
+{
+    use HasApiTokens, Notifiable;
+    // ...
+}
+```
+
+Las rutas protegidas usan el middleware `auth:sanctum`:
+
+```php routes/api.php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+    // Más rutas protegidas...
+});
+```
+
+## Comandos Útiles de Artisan
+
+<CodeGroup>
+```bash Limpiar caché de configuración
+php artisan config:clear
+```
+
+```bash Limpiar caché de rutas
+php artisan route:clear
+```
+
+```bash Ver todas las rutas
+php artisan route:list
+```
+
+```bash Crear un nuevo controlador
+php artisan make:controller NombreController
+```
+
+```bash Crear un nuevo modelo
+php artisan make:model NombreModelo
+```
+
+```bash Crear una nueva migración
+php artisan make:migration create_tabla_name
+```
+
+```bash Abrir shell interactivo (Tinker)
+php artisan tinker
+```
+</CodeGroup>
+
+## Estructura del Proyecto
+
+```
+fabrica-marie-api/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/Api/    # Controladores de la API
+│   │   └── Middleware/         # Middleware personalizado
+│   └── Models/                 # Modelos Eloquent
+├── config/                     # Archivos de configuración
+├── database/
+│   ├── migrations/             # Migraciones de base de datos
+│   ├── seeders/                # Seeders de datos iniciales
+│   └── factories/              # Factories para testing
+├── routes/
+│   ├── api.php                 # Rutas de la API
+│   └── web.php                 # Rutas web
+├── tests/                      # Tests con Pest PHP
+├── .env.example                # Plantilla de variables de entorno
+├── composer.json               # Dependencias PHP
+└── artisan                     # CLI de Laravel
+```
+
+## Solución de Problemas Comunes
+
+<AccordionGroup>
+  <Accordion title="Error: Class not found">
+    Regenera el autoloader de Composer:
+    ```bash
+    composer dump-autoload
+    ```
+  </Accordion>
+
+  <Accordion title="Error de permisos en storage/">
+    Asegúrate de que Laravel pueda escribir en los directorios de storage y cache:
+    ```bash
+    chmod -R 775 storage bootstrap/cache
+    chown -R www-data:www-data storage bootstrap/cache
+    ```
+  </Accordion>
+
+  <Accordion title="Error de conexión a la base de datos">
+    1. Verifica que MySQL esté ejecutándose
+    2. Confirma las credenciales en `.env`
+    3. Verifica que la base de datos exista
+    ```bash
+    php artisan migrate:status
+    ```
+  </Accordion>
+
+  <Accordion title="Error con Sanctum authentication">
+    Verifica que la configuración de CORS esté correcta y que el middleware de Sanctum esté configurado en `bootstrap/app.php`
+  </Accordion>
+</AccordionGroup>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Base de Datos" icon="database" href="./database">
+    Aprende sobre los modelos y la estructura de la base de datos
+  </Card>
+  <Card title="Middleware" icon="shield" href="./middleware">
+    Entiende el sistema de autenticación y autorización
+  </Card>
+  <Card title="Testing" icon="flask" href="./testing">
+    Configura y escribe tests para tu código
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Explora los endpoints disponibles
+  </Card>
+</CardGroup>

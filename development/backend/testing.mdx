@@ -1,0 +1,733 @@
+---
+title: "Testing con Pest PHP"
+description: "Guía para escribir y ejecutar tests en el backend de Fabrica Marie ERP usando Pest PHP"
+icon: "flask"
+---
+
+El sistema Fabrica Marie ERP utiliza [Pest PHP](https://pestphp.com/) para testing, un framework de testing elegante y expresivo construido sobre PHPUnit.
+
+## ¿Por qué Pest PHP?
+
+Pest ofrece una sintaxis más limpia y expresiva que PHPUnit tradicional:
+
+<CodeGroup>
+```php Pest (Actual)
+it('puede crear una venta', function () {
+    $user = Usuario::factory()->create();
+    
+    $response = $this->actingAs($user)
+        ->postJson('/api/ventas', [
+            'cliente_id' => 1,
+            'items' => [...]
+        ]);
+    
+    $response->assertStatus(201);
+});
+```
+
+```php PHPUnit (Tradicional)
+class VentaTest extends TestCase
+{
+    public function test_puede_crear_una_venta()
+    {
+        $user = Usuario::factory()->create();
+        
+        $response = $this->actingAs($user)
+            ->postJson('/api/ventas', [
+                'cliente_id' => 1,
+                'items' => [...]
+            ]);
+        
+        $response->assertStatus(201);
+    }
+}
+```
+</CodeGroup>
+
+## Configuración
+
+Pest PHP ya está configurado en el proyecto:
+
+```json composer.json
+{
+  "require-dev": {
+    "pestphp/pest": "^2.34",
+    "pestphp/pest-plugin-laravel": "^2.4"
+  }
+}
+```
+
+### Configuración de Pest
+
+```php tests/Pest.php
+<?php
+
+uses(
+    Tests\TestCase::class,
+    // Descomentar para usar RefreshDatabase en todos los tests
+    // Illuminate\Foundation\Testing\RefreshDatabase::class,
+)->in('Feature');
+
+// Funciones helper globales para tests
+function actingAsAdmin()
+{
+    $admin = Usuario::factory()->create();
+    $admin->roles()->attach(Rol::where('nombre', 'ADMIN')->first());
+    return test()->actingAs($admin);
+}
+```
+
+### Configuración de PHPUnit
+
+```xml phpunit.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_DATABASE" value="fabrica_marie_test"/>
+    </php>
+</phpunit>
+```
+
+<Warning>
+Crea una base de datos separada para testing (`fabrica_marie_test`) para evitar afectar tus datos de desarrollo.
+</Warning>
+
+## Ejecutar Tests
+
+<CodeGroup>
+```bash Ejecutar todos los tests
+php artisan test
+```
+
+```bash Usando Pest directamente
+./vendor/bin/pest
+```
+
+```bash Ejecutar tests específicos
+php artisan test --filter=VentaTest
+```
+
+```bash Con cobertura de código
+php artisan test --coverage
+```
+
+```bash Tests paralelos (más rápido)
+php artisan test --parallel
+```
+
+```bash Ver qué tests se ejecutan
+php artisan test --verbose
+```
+</CodeGroup>
+
+## Estructura de Tests
+
+```
+tests/
+├── Feature/           # Tests de integración (API, flujos completos)
+│   ├── Auth/
+│   │   ├── LoginTest.php
+│   │   └── LogoutTest.php
+│   ├── Venta/
+│   │   ├── CrearVentaTest.php
+│   │   └── AnularVentaTest.php
+│   └── ExampleTest.php
+├── Unit/              # Tests unitarios (modelos, servicios)
+│   ├── Models/
+│   │   └── UsuarioTest.php
+│   └── Services/
+│       └── CalculadoraTest.php
+├── Pest.php           # Configuración global de Pest
+└── TestCase.php       # Clase base para tests
+```
+
+## Escribir Feature Tests
+
+### Test de Autenticación
+
+Crea `tests/Feature/Auth/LoginTest.php`:
+
+```php tests/Feature/Auth/LoginTest.php
+<?php
+
+use App\Models\Usuario;
+use Illuminate\Support\Facades\Hash;
+
+it('puede hacer login con credenciales válidas', function () {
+    // Arrange: Crear usuario
+    $usuario = Usuario::factory()->create([
+        'username' => 'testuser',
+        'password_hash' => Hash::make('password123'),
+        'activo' => true
+    ]);
+    
+    // Act: Hacer login
+    $response = $this->postJson('/api/login', [
+        'username' => 'testuser',
+        'password' => 'password123'
+    ]);
+    
+    // Assert: Verificar respuesta
+    $response->assertStatus(200)
+             ->assertJsonStructure([
+                 'token',
+                 'user' => ['id', 'username', 'nombre']
+             ]);
+});
+
+it('rechaza credenciales inválidas', function () {
+    $response = $this->postJson('/api/login', [
+        'username' => 'noexiste',
+        'password' => 'wrongpassword'
+    ]);
+    
+    $response->assertStatus(422)
+             ->assertJsonValidationErrors(['username']);
+});
+
+it('no permite login a usuarios inactivos', function () {
+    $usuario = Usuario::factory()->create([
+        'username' => 'inactivo',
+        'password_hash' => Hash::make('password123'),
+        'activo' => false
+    ]);
+    
+    $response = $this->postJson('/api/login', [
+        'username' => 'inactivo',
+        'password' => 'password123'
+    ]);
+    
+    $response->assertStatus(422);
+});
+
+it('puede hacer logout', function () {
+    $usuario = Usuario::factory()->create();
+    
+    $response = $this->actingAs($usuario)
+        ->postJson('/api/logout');
+    
+    $response->assertStatus(200)
+             ->assertJson(['message' => 'Sesión cerrada exitosamente']);
+});
+```
+
+### Test de Creación de Venta
+
+Crea `tests/Feature/Venta/CrearVentaTest.php`:
+
+```php tests/Feature/Venta/CrearVentaTest.php
+<?php
+
+use App\Models\Usuario;
+use App\Models\Vendedor;
+use App\Models\Cliente;
+use App\Models\Producto;
+use App\Models\Caja;
+use App\Models\Rol;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    // Ejecutar seeders necesarios
+    $this->seed([RolSeeder::class, PermisoSeeder::class]);
+    
+    // Crear usuario vendedor
+    $this->usuario = Usuario::factory()->create();
+    $rolVendedor = Rol::where('nombre', 'VENDEDOR')->first();
+    $this->usuario->roles()->attach($rolVendedor);
+    
+    $this->vendedor = Vendedor::create([
+        'usuario_id' => $this->usuario->id,
+        'activo' => true
+    ]);
+    
+    // Crear cliente
+    $this->cliente = Cliente::factory()->create();
+    
+    // Crear productos
+    $this->producto1 = Producto::factory()->create([
+        'precio_base' => 10.00,
+        'stock_minimo' => 5
+    ]);
+    
+    $this->producto2 = Producto::factory()->create([
+        'precio_base' => 15.00,
+        'stock_minimo' => 3
+    ]);
+    
+    // Abrir caja
+    $this->caja = Caja::create([
+        'usuario_id' => $this->usuario->id,
+        'fecha' => now()->toDateString(),
+        'saldo_inicial' => 100.00,
+        'saldo_actual' => 100.00,
+        'total_ingresos' => 0,
+        'total_egresos' => 0,
+        'estado' => 'ABIERTA'
+    ]);
+});
+
+it('puede crear una venta al contado', function () {
+    $data = [
+        'vendedor_id' => $this->vendedor->id,
+        'cliente_id' => $this->cliente->id,
+        'tipo_pago' => 'CONTADO',
+        'items' => [
+            [
+                'producto_id' => $this->producto1->id,
+                'cantidad' => 2,
+                'precio_unitario' => 10.00
+            ],
+            [
+                'producto_id' => $this->producto2->id,
+                'cantidad' => 1,
+                'precio_unitario' => 15.00
+            ]
+        ]
+    ];
+    
+    $response = $this->actingAs($this->usuario)
+        ->postJson('/api/ventas', $data);
+    
+    $response->assertStatus(201)
+             ->assertJsonStructure([
+                 'venta' => [
+                     'id',
+                     'codigo',
+                     'total_neto',
+                     'tipo_pago',
+                     'estado'
+                 ]
+             ]);
+    
+    // Verificar que la venta se creó en la BD
+    $this->assertDatabaseHas('ventas', [
+        'vendedor_id' => $this->vendedor->id,
+        'cliente_id' => $this->cliente->id,
+        'tipo_pago' => 'CONTADO',
+        'estado' => 'PENDIENTE'
+    ]);
+    
+    // Verificar que los items se crearon
+    $this->assertDatabaseCount('venta_items', 2);
+});
+
+it('no puede crear venta sin caja abierta', function () {
+    // Cerrar la caja
+    $this->caja->update(['estado' => 'CERRADA']);
+    
+    $data = [
+        'vendedor_id' => $this->vendedor->id,
+        'cliente_id' => $this->cliente->id,
+        'tipo_pago' => 'CONTADO',
+        'items' => [
+            [
+                'producto_id' => $this->producto1->id,
+                'cantidad' => 1,
+                'precio_unitario' => 10.00
+            ]
+        ]
+    ];
+    
+    $response = $this->actingAs($this->usuario)
+        ->postJson('/api/ventas', $data);
+    
+    $response->assertStatus(403)
+             ->assertJson(['message' => 'No existe una caja abierta para el usuario']);
+});
+
+it('valida que los items sean requeridos', function () {
+    $data = [
+        'vendedor_id' => $this->vendedor->id,
+        'cliente_id' => $this->cliente->id,
+        'tipo_pago' => 'CONTADO',
+        'items' => []
+    ];
+    
+    $response = $this->actingAs($this->usuario)
+        ->postJson('/api/ventas', $data);
+    
+    $response->assertStatus(422)
+             ->assertJsonValidationErrors(['items']);
+});
+
+it('puede crear venta a crédito', function () {
+    $data = [
+        'vendedor_id' => $this->vendedor->id,
+        'cliente_id' => $this->cliente->id,
+        'tipo_pago' => 'CREDITO',
+        'items' => [
+            [
+                'producto_id' => $this->producto1->id,
+                'cantidad' => 5,
+                'precio_unitario' => 10.00
+            ]
+        ]
+    ];
+    
+    $response = $this->actingAs($this->usuario)
+        ->postJson('/api/ventas', $data);
+    
+    $response->assertStatus(201);
+    
+    // Verificar que se creó una cuenta por cobrar
+    $this->assertDatabaseHas('cuentas_por_cobrar', [
+        'cliente_id' => $this->cliente->id,
+        'saldo_pendiente' => 50.00
+    ]);
+});
+```
+
+### Test de Middleware
+
+Crea `tests/Feature/Middleware/RoleMiddlewareTest.php`:
+
+```php tests/Feature/Middleware/RoleMiddlewareTest.php
+<?php
+
+use App\Models\Usuario;
+use App\Models\Rol;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->seed([RolSeeder::class]);
+});
+
+it('permite acceso a usuarios con rol correcto', function () {
+    $usuario = Usuario::factory()->create();
+    $rolAdmin = Rol::where('nombre', 'ADMIN')->first();
+    $usuario->roles()->attach($rolAdmin);
+    
+    $response = $this->actingAs($usuario)
+        ->getJson('/api/admin/usuarios');
+    
+    $response->assertStatus(200);
+});
+
+it('bloquea acceso a usuarios sin rol correcto', function () {
+    $usuario = Usuario::factory()->create();
+    $rolVendedor = Rol::where('nombre', 'VENDEDOR')->first();
+    $usuario->roles()->attach($rolVendedor);
+    
+    $response = $this->actingAs($usuario)
+        ->getJson('/api/admin/usuarios');
+    
+    $response->assertStatus(403)
+             ->assertJson(['error' => 'No autorizado']);
+});
+
+it('bloquea acceso a usuarios no autenticados', function () {
+    $response = $this->getJson('/api/admin/usuarios');
+    
+    $response->assertStatus(401);
+});
+```
+
+## Escribir Unit Tests
+
+### Test de Modelo
+
+Crea `tests/Unit/Models/UsuarioTest.php`:
+
+```php tests/Unit/Models/UsuarioTest.php
+<?php
+
+use App\Models\Usuario;
+use App\Models\Rol;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('tiene relación con roles', function () {
+    $usuario = Usuario::factory()->create();
+    $rol = Rol::factory()->create();
+    
+    $usuario->roles()->attach($rol);
+    
+    expect($usuario->roles)->toHaveCount(1);
+    expect($usuario->roles->first()->nombre)->toBe($rol->nombre);
+});
+
+it('puede obtener sus permisos a través de roles', function () {
+    $this->seed([RolSeeder::class, PermisoSeeder::class, RolPermisoSeeder::class]);
+    
+    $usuario = Usuario::factory()->create();
+    $rolAdmin = Rol::where('nombre', 'ADMIN')->first();
+    $usuario->roles()->attach($rolAdmin);
+    
+    $permisos = $usuario->permisos()->get();
+    
+    expect($permisos)->not->toBeEmpty();
+});
+
+it('oculta el password_hash en JSON', function () {
+    $usuario = Usuario::factory()->create();
+    
+    $json = $usuario->toArray();
+    
+    expect($json)->not->toHaveKey('password_hash');
+});
+```
+
+### Test de Relaciones
+
+Crea `tests/Unit/Models/VentaTest.php`:
+
+```php tests/Unit/Models/VentaTest.php
+<?php
+
+use App\Models\Venta;
+use App\Models\Cliente;
+use App\Models\Vendedor;
+use App\Models\VentaItem;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('pertenece a un vendedor', function () {
+    $vendedor = Vendedor::factory()->create();
+    $venta = Venta::factory()->create(['vendedor_id' => $vendedor->id]);
+    
+    expect($venta->vendedor)->toBeInstanceOf(Vendedor::class);
+    expect($venta->vendedor->id)->toBe($vendedor->id);
+});
+
+it('pertenece a un cliente', function () {
+    $cliente = Cliente::factory()->create();
+    $venta = Venta::factory()->create(['cliente_id' => $cliente->id]);
+    
+    expect($venta->cliente)->toBeInstanceOf(Cliente::class);
+});
+
+it('tiene múltiples items', function () {
+    $venta = Venta::factory()->create();
+    VentaItem::factory()->count(3)->create(['venta_id' => $venta->id]);
+    
+    expect($venta->items)->toHaveCount(3);
+});
+```
+
+## Factories
+
+Las factories permiten crear datos de prueba fácilmente:
+
+```php database/factories/UsuarioFactory.php
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Hash;
+
+class UsuarioFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            'username' => $this->faker->unique()->userName(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'password_hash' => Hash::make('password'),
+            'nombre' => $this->faker->name(),
+            'activo' => true,
+        ];
+    }
+    
+    public function inactivo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'activo' => false,
+        ]);
+    }
+}
+```
+
+**Uso:**
+
+```php
+// Crear un usuario
+$usuario = Usuario::factory()->create();
+
+// Crear múltiples usuarios
+$usuarios = Usuario::factory()->count(10)->create();
+
+// Usar estados
+$inactivo = Usuario::factory()->inactivo()->create();
+
+// Sobrescribir atributos
+$usuario = Usuario::factory()->create([
+    'username' => 'admin',
+    'nombre' => 'Administrador'
+]);
+```
+
+## Helpers y Expectations de Pest
+
+### Expectations
+
+```php
+// Valores
+expect($value)->toBe(100);
+expect($value)->toEqual(['a' => 1]);
+expect($value)->toBeTrue();
+expect($value)->toBeFalse();
+expect($value)->toBeNull();
+
+// Tipos
+expect($user)->toBeInstanceOf(Usuario::class);
+expect($array)->toBeArray();
+expect($string)->toBeString();
+
+// Colecciones
+expect($collection)->toHaveCount(5);
+expect($array)->toContain('valor');
+expect($array)->toHaveKey('nombre');
+expect($collection)->toBeEmpty();
+
+// Strings
+expect($string)->toContain('buscar');
+expect($string)->toStartWith('inicio');
+expect($string)->toEndWith('fin');
+
+// Números
+expect($numero)->toBeGreaterThan(10);
+expect($numero)->toBeLessThan(100);
+expect($numero)->toBeBetween(10, 100);
+```
+
+### Datasets
+
+Prueba múltiples casos con un solo test:
+
+```php
+it('valida diferentes tipos de pago', function ($tipoPago, $esperado) {
+    $data = [
+        'tipo_pago' => $tipoPago,
+        // otros datos...
+    ];
+    
+    $response = $this->postJson('/api/ventas', $data);
+    
+    expect($response->status())->toBe($esperado);
+})->with([
+    ['CONTADO', 201],
+    ['CREDITO', 201],
+    ['INVALIDO', 422],
+]);
+```
+
+## Mejores Prácticas
+
+<AccordionGroup>
+  <Accordion title="1. Usa RefreshDatabase">
+    ```php
+    uses(RefreshDatabase::class);
+    ```
+    Esto resetea la base de datos entre tests para mantenerlos aislados.
+  </Accordion>
+
+  <Accordion title="2. Organiza con beforeEach">
+    ```php
+    beforeEach(function () {
+        $this->usuario = Usuario::factory()->create();
+        $this->caja = Caja::factory()->create();
+    });
+    ```
+    Reutiliza configuración común entre tests.
+  </Accordion>
+
+  <Accordion title="3. Usa factories en lugar de crear manualmente">
+    ```php
+    // ✅ Bueno
+    $usuario = Usuario::factory()->create();
+    
+    // ❌ Evitar
+    $usuario = Usuario::create([
+        'username' => 'test',
+        'email' => 'test@example.com',
+        // ...
+    ]);
+    ```
+  </Accordion>
+
+  <Accordion title="4. Tests descriptivos">
+    ```php
+    // ✅ Bueno
+    it('no permite crear venta sin caja abierta', function () {
+        // ...
+    });
+    
+    // ❌ Evitar
+    it('test venta', function () {
+        // ...
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="5. Sigue el patrón AAA">
+    ```php
+    it('puede crear un producto', function () {
+        // Arrange (Preparar)
+        $usuario = Usuario::factory()->create();
+        $data = ['nombre' => 'Producto Test'];
+        
+        // Act (Actuar)
+        $response = $this->actingAs($usuario)
+            ->postJson('/api/productos', $data);
+        
+        // Assert (Afirmar)
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('productos', $data);
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Comandos Útiles
+
+<CodeGroup>
+```bash Crear factory
+php artisan make:factory ProductoFactory
+```
+
+```bash Ejecutar seeders en testing
+php artisan db:seed --env=testing
+```
+
+```bash Tests con output detallado
+php artisan test --verbose
+```
+
+```bash Ejecutar solo tests que fallaron
+php artisan test --failed
+```
+</CodeGroup>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="wrench" href="./setup">
+    Configurar el entorno de desarrollo
+  </Card>
+  <Card title="Base de Datos" icon="database" href="./database">
+    Aprender sobre modelos y migraciones
+  </Card>
+  <Card title="Middleware" icon="shield" href="./middleware">
+    Entender autenticación y autorización
+  </Card>
+  <Card title="Pest PHP Docs" icon="book" href="https://pestphp.com">
+    Documentación oficial de Pest
+  </Card>
+</CardGroup>

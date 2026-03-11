@@ -1,0 +1,225 @@
+---
+title: 'Configuración del Frontend'
+description: 'Configuración del entorno de desarrollo, instalación de dependencias y ejecución del servidor de desarrollo'
+icon: 'gear'
+---
+
+## Descripción General
+
+El frontend de Fabrica Marie ERP está construido con **React**, **TypeScript**, **Vite** y **Laravel Vite Plugin** para una integración fluida con el backend Laravel.
+
+## Requisitos Previos
+
+<Steps>
+  <Step title="Node.js">
+    Se requiere Node.js 18.x o superior.
+    
+    ```bash
+    node --version
+    # Debe mostrar v18.x o superior
+    ```
+  </Step>
+
+  <Step title="npm o pnpm">
+    Gestor de paquetes para instalar dependencias.
+    
+    ```bash
+    npm --version
+    ```
+  </Step>
+</Steps>
+
+## Instalación de Dependencias
+
+### Instalar paquetes npm
+
+```bash
+npm install
+```
+
+### Dependencias principales
+
+El archivo `package.json` incluye las siguientes dependencias:
+
+<CodeGroup>
+```json package.json
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "axios": "^1.6.4",
+    "laravel-vite-plugin": "^1.0",
+    "vite": "^5.0"
+  }
+}
+```
+</CodeGroup>
+
+<Info>
+  Además de estas dependencias base, el proyecto incluye:
+  - **React** y **React DOM**
+  - **TypeScript** para tipado estático
+  - **Tailwind CSS** para estilos
+  - **shadcn/ui** para componentes UI
+  - **React Router** para enrutamiento
+  - **React Query** (@tanstack/react-query) para gestión de estado del servidor
+  - **Lucide React** para iconos
+</Info>
+
+## Configuración de Vite
+
+El archivo `vite.config.js` configura la integración con Laravel:
+
+<CodeGroup>
+```javascript vite.config.js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [
+    laravel({
+      input: ['resources/js/main.jsx'],
+      refresh: true,
+    }),
+    react(),
+  ],
+  build: {
+    outDir: 'public/react',
+    emptyOutDir: true,
+    manifest: true,
+    rollupOptions: {
+      input: 'resources/js/main.jsx',
+    },
+  },
+});
+```
+</CodeGroup>
+
+### Características clave de la configuración
+
+- **Laravel Vite Plugin**: Integración nativa con Laravel
+- **React Plugin**: Soporte completo para JSX/TSX y Fast Refresh
+- **Hot Module Replacement (HMR)**: Actualización instantánea durante desarrollo
+- **Carpeta de salida**: `public/react` para los archivos compilados
+- **Manifest**: Generación automática de manifest para versionado de assets
+
+## Ejecución del Servidor de Desarrollo
+
+<Steps>
+  <Step title="Iniciar el servidor de desarrollo">
+    ```bash
+    npm run dev
+    ```
+    
+    Esto iniciará el servidor de desarrollo de Vite con HMR habilitado.
+  </Step>
+
+  <Step title="Verificar la URL">
+    Por defecto, Vite se ejecuta en:
+    
+    ```
+    http://localhost:5173
+    ```
+    
+    <Warning>
+      En desarrollo, asegúrate de que el backend Laravel también esté ejecutándose en `http://localhost:8000` para que las peticiones API funcionen correctamente.
+    </Warning>
+  </Step>
+
+  <Step title="Hot Module Replacement">
+    Los cambios en los archivos se reflejarán automáticamente en el navegador sin necesidad de recargar la página completa.
+  </Step>
+</Steps>
+
+## Build de Producción
+
+Para compilar el proyecto para producción:
+
+```bash
+npm run build
+```
+
+Esto generará archivos optimizados en la carpeta `public/react/` con:
+
+- **Minificación** de JavaScript y CSS
+- **Tree-shaking** para eliminar código no utilizado
+- **Code splitting** automático
+- **Hashing de archivos** para cache busting
+
+## Estructura del Proyecto Frontend
+
+```
+resources/js/src/
+├── components/          # Componentes reutilizables
+│   ├── ui/             # Componentes UI de shadcn
+│   ├── auth/           # Componentes de autenticación
+│   ├── dashboard/      # Componentes del dashboard
+│   ├── sales/          # Componentes de ventas
+│   └── layout/         # Componentes de layout
+├── contexts/           # Contextos de React
+│   ├── AuthContext.tsx
+│   └── RoleContext.tsx
+├── pages/              # Páginas de la aplicación
+├── services/           # Servicios API
+│   └── api.ts
+├── types/              # Definiciones TypeScript
+├── lib/                # Utilidades
+└── App.tsx             # Componente raíz
+```
+
+## Variables de Entorno
+
+El frontend utiliza variables de entorno para configuración:
+
+```bash .env
+VITE_API_URL=http://localhost:8000/api
+```
+
+<Tip>
+  Las variables de entorno en Vite deben tener el prefijo `VITE_` para estar disponibles en el cliente.
+</Tip>
+
+## Solución de Problemas
+
+### Error: Cannot find module
+
+```bash
+# Eliminar node_modules y reinstalar
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Puerto en uso
+
+```bash
+# Vite permite especificar un puerto diferente
+npm run dev -- --port 3000
+```
+
+### Errores de TypeScript
+
+```bash
+# Verificar tipos sin compilar
+npx tsc --noEmit
+```
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Componentes" icon="puzzle-piece" href="/development/frontend/components">
+    Aprende sobre la arquitectura de componentes y shadcn/ui
+  </Card>
+  
+  <Card title="Routing" icon="route" href="/development/frontend/routing">
+    Descubre cómo funcionan las rutas y la navegación
+  </Card>
+  
+  <Card title="State Management" icon="database" href="/development/frontend/state-management">
+    Gestión de estado con Context API y React Query
+  </Card>
+</CardGroup>

@@ -1,0 +1,321 @@
+---
+title: 'Apertura y Cierre de Caja'
+api: 'POST /api/caja/abrir'
+---
+
+## Abrir Caja
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/caja/abrir \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "monto_apertura": 1000.00
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja/abrir', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    monto_apertura: 1000.00
+  })
+});
+
+const data = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/caja/abrir', [
+        'monto_apertura' => 1000.00
+    ]);
+
+$caja = $response->json();
+```
+</RequestExample>
+
+<ParamField body="monto_apertura" type="number" required>
+  Monto inicial con el que se abre la caja
+</ParamField>
+
+<ResponseField name="id" type="integer">
+  ID de la caja creada
+</ResponseField>
+
+<ResponseField name="usuario_id" type="integer">
+  ID del usuario que abre la caja
+</ResponseField>
+
+<ResponseField name="fecha" type="string">
+  Fecha de apertura de la caja (formato: YYYY-MM-DD)
+</ResponseField>
+
+<ResponseField name="saldo_inicial" type="number">
+  Saldo inicial de la caja
+</ResponseField>
+
+<ResponseField name="saldo_actual" type="number">
+  Saldo actual de la caja (al abrir es igual al saldo inicial)
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la caja (ABIERTA)
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "id": 123,
+  "usuario_id": 45,
+  "fecha": "2024-03-15",
+  "saldo_inicial": 1000.00,
+  "saldo_actual": 1000.00,
+  "estado": "ABIERTA",
+  "created_at": "2024-03-15T08:00:00.000000Z",
+  "updated_at": "2024-03-15T08:00:00.000000Z"
+}
+```
+
+```json Error: Caja Ya Abierta
+{
+  "error": "Ya existe una caja abierta"
+}
+```
+</ResponseExample>
+
+---
+
+## Obtener Caja Actual
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/caja \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const caja = await response.json();
+```
+
+```php PHP
+$caja = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/caja')
+    ->json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID de la caja
+</ResponseField>
+
+<ResponseField name="usuario_id" type="integer">
+  ID del usuario que abrió la caja
+</ResponseField>
+
+<ResponseField name="fecha" type="string">
+  Fecha de la caja del día actual
+</ResponseField>
+
+<ResponseField name="saldo_inicial" type="number">
+  Saldo inicial de la caja
+</ResponseField>
+
+<ResponseField name="saldo_actual" type="number">
+  Saldo actual de la caja
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la caja (ABIERTA o CERRADA)
+</ResponseField>
+
+---
+
+## Obtener Caja Abierta con Detalles
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/caja/actual \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja/actual', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const caja = await response.json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID de la caja
+</ResponseField>
+
+<ResponseField name="usuario" type="object">
+  Información del usuario que abrió la caja
+</ResponseField>
+
+<ResponseField name="movimientos" type="array">
+  Array de movimientos de la caja
+</ResponseField>
+
+<ResponseField name="fecha" type="string">
+  Fecha de la caja
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la caja (ABIERTA)
+</ResponseField>
+
+---
+
+## Cerrar Caja
+
+<api>POST /api/caja/{id}/cerrar</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/caja/123/cerrar \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "monto_cierre": 5000.00,
+    "observaciones": "Cierre normal del día"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja/123/cerrar', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    monto_cierre: 5000.00,
+    observaciones: 'Cierre normal del día'
+  })
+});
+
+const data = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/caja/123/cerrar', [
+        'monto_cierre' => 5000.00,
+        'observaciones' => 'Cierre normal del día'
+    ]);
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID de la caja a cerrar
+</ParamField>
+
+<ParamField body="monto_cierre" type="number" required>
+  Monto físico contado al cerrar la caja
+</ParamField>
+
+<ParamField body="observaciones" type="string">
+  Observaciones sobre el cierre de caja
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "success": true,
+  "message": "Caja cerrada correctamente",
+  "data": {
+    "id": 123,
+    "usuario_id": 45,
+    "fecha": "2024-03-15",
+    "saldo_inicial": 1000.00,
+    "saldo_actual": 5000.00,
+    "estado": "CERRADA",
+    "cerrado_at": "2024-03-15T18:00:00.000000Z"
+  }
+}
+```
+</ResponseExample>
+
+---
+
+## Obtener Cajas Cerradas
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/caja/cerradas \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/caja/cerradas', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const cajasCerradas = await response.json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID de la caja
+</ResponseField>
+
+<ResponseField name="usuario_cerrado" type="object">
+  Información del usuario que cerró la caja
+</ResponseField>
+
+<ResponseField name="cierre_caja" type="object">
+  Detalles del cierre de caja (monto físico, diferencias, etc.)
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la caja (CERRADA)
+</ResponseField>
+
+<ResponseField name="cerrado_at" type="string">
+  Fecha y hora de cierre
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+[
+  {
+    "id": 123,
+    "usuario_id": 45,
+    "fecha": "2024-03-15",
+    "saldo_inicial": 1000.00,
+    "saldo_actual": 5000.00,
+    "estado": "CERRADA",
+    "cerrado_at": "2024-03-15T18:00:00.000000Z",
+    "usuario_cerrado": {
+      "id": 45,
+      "nombre": "Juan Pérez",
+      "email": "juan.perez@fabricamarie.com"
+    },
+    "cierre_caja": {
+      "monto_fisico": 5000.00,
+      "diferencia": 0.00,
+      "observaciones": "Cierre normal del día"
+    }
+  }
+]
+```
+</ResponseExample>

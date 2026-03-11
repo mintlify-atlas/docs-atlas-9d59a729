@@ -1,0 +1,497 @@
+---
+title: 'Rumas'
+description: 'Gestión de rumas (áreas de almacenamiento) en el inventario'
+---
+
+## Listar Rumas
+
+<api method="GET" path="/api/inventario/rumas" />
+
+Obtiene la lista de todas las rumas con su stock actual y productos almacenados.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único de la ruma
+</ResponseField>
+
+<ResponseField name="codigo" type="string">
+  Código único de la ruma (máx. 20 caracteres, convertido a mayúsculas)
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Nombre descriptivo de la ruma (máx. 100 caracteres)
+</ResponseField>
+
+<ResponseField name="ubicacion_fisica" type="string">
+  Ubicación física en el almacén (máx. 150 caracteres)
+</ResponseField>
+
+<ResponseField name="capacidad" type="integer">
+  Capacidad máxima en unidades
+</ResponseField>
+
+<ResponseField name="stockActual" type="integer">
+  Stock actual total de todos los productos en la ruma
+</ResponseField>
+
+<ResponseField name="condiciones" type="string" nullable>
+  Condiciones de almacenamiento (ej: "refrigerado", "seco", "ventilado")
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la ruma: `ACTIVA`, `INACTIVA`, `MANTENIMIENTO`, `LLENA`
+</ResponseField>
+
+<ResponseField name="descripcion" type="string" nullable>
+  Descripción adicional de la ruma (máx. 255 caracteres)
+</ResponseField>
+
+<ResponseField name="products" type="array">
+  Array de productos almacenados en la ruma
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/rumas" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/rumas', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const rumas = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/inventario/rumas');
+$rumas = $response->json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 1,
+    "codigo": "RUMA-A01",
+    "nombre": "Ruma Principal A",
+    "ubicacion_fisica": "Almacén Central - Pasillo A - Nivel 1",
+    "capacidad": 1000,
+    "stockActual": 750,
+    "condiciones": "Ambiente seco, temperatura controlada",
+    "estado": "ACTIVA",
+    "descripcion": "Área principal para productos de panadería",
+    "products": [
+      {
+        "id": 1,
+        "nombre": "Pan Francés",
+        "sku": "PAN-001",
+        "cantidad": 350
+      },
+      {
+        "id": 2,
+        "nombre": "Pan Integral",
+        "sku": "PAN-002",
+        "cantidad": 400
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "codigo": "RUMA-B05",
+    "nombre": "Ruma Refrigerada B5",
+    "ubicacion_fisica": "Cámara Frigorífica - Sector B",
+    "capacidad": 500,
+    "stockActual": 480,
+    "condiciones": "Refrigerado 4-8°C",
+    "estado": "ACTIVA",
+    "descripcion": "Productos que requieren refrigeración",
+    "products": [
+      {
+        "id": 15,
+        "nombre": "Torta de Crema",
+        "sku": "TORT-015",
+        "cantidad": 480
+      }
+    ]
+  }
+]
+```
+
+---
+
+## Obtener Ruma
+
+<api method="GET" path="/api/inventario/rumas/{id}" />
+
+Obtiene información detallada de una ruma específica, incluyendo todos los productos almacenados.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la ruma
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/rumas/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/rumas/1', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const ruma = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "id": 1,
+  "codigo": "RUMA-A01",
+  "nombre": "Ruma Principal A",
+  "ubicacion_fisica": "Almacén Central - Pasillo A - Nivel 1",
+  "capacidad": 1000,
+  "stockActual": 750,
+  "condiciones": "Ambiente seco, temperatura controlada",
+  "estado": "ACTIVA",
+  "descripcion": "Área principal para productos de panadería",
+  "products": [
+    {
+      "id": 1,
+      "nombre": "Pan Francés",
+      "sku": "PAN-001",
+      "cantidad": 350
+    },
+    {
+      "id": 2,
+      "nombre": "Pan Integral",
+      "sku": "PAN-002",
+      "cantidad": 400
+    }
+  ]
+}
+```
+
+---
+
+## Crear Ruma
+
+<api method="POST" path="/api/inventario/rumas" />
+
+Crea una nueva ruma en el sistema.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="codigo" type="string" required>
+  Código único de la ruma (máx. 20 caracteres, se convertirá a mayúsculas automáticamente)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Nombre descriptivo de la ruma (máx. 100 caracteres)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Descripción adicional (máx. 255 caracteres, opcional)
+</ParamField>
+
+<ParamField body="condiciones" type="string">
+  Condiciones de almacenamiento (máx. 100 caracteres, opcional)
+</ParamField>
+
+<ParamField body="capacidad_unidades" type="integer" required>
+  Capacidad máxima en unidades (mínimo 1)
+</ParamField>
+
+<ParamField body="ubicacion_fisica" type="string" required>
+  Ubicación física en el almacén (máx. 150 caracteres)
+</ParamField>
+
+<ParamField body="estado" type="string" required>
+  Estado inicial de la ruma. Valores permitidos: `ACTIVA`, `INACTIVA`, `MANTENIMIENTO`, `LLENA`
+</ParamField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.fabricamarie.com/api/inventario/rumas" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "codigo": "ruma-c10",
+    "nombre": "Ruma C10 - Pasteles",
+    "descripcion": "Área designada para pasteles y tortas",
+    "condiciones": "Refrigerado 2-6°C",
+    "capacidad_unidades": 800,
+    "ubicacion_fisica": "Cámara Frigorífica - Sector C",
+    "estado": "ACTIVA"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/rumas', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    codigo: 'ruma-c10',
+    nombre: 'Ruma C10 - Pasteles',
+    descripcion: 'Área designada para pasteles y tortas',
+    condiciones: 'Refrigerado 2-6°C',
+    capacidad_unidades: 800,
+    ubicacion_fisica: 'Cámara Frigorífica - Sector C',
+    estado: 'ACTIVA'
+  })
+});
+const result = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/inventario/rumas', [
+        'codigo' => 'ruma-c10',
+        'nombre' => 'Ruma C10 - Pasteles',
+        'capacidad_unidades' => 800,
+        'ubicacion_fisica' => 'Cámara Frigorífica - Sector C',
+        'estado' => 'ACTIVA'
+    ]);
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta (201 Created)
+
+```json
+{
+  "message": "Ruma creada correctamente",
+  "data": {
+    "id": 10,
+    "codigo": "RUMA-C10",
+    "nombre": "Ruma C10 - Pasteles",
+    "descripcion": "Área designada para pasteles y tortas",
+    "condiciones": "Refrigerado 2-6°C",
+    "capacidad_unidades": 800,
+    "ubicacion_fisica": "Cámara Frigorífica - Sector C",
+    "estado": "ACTIVA"
+  }
+}
+```
+
+### Errores Comunes
+
+- **422 Unprocessable Entity**: Datos de validación incorrectos (ej: código duplicado, capacidad menor a 1)
+- **401 Unauthorized**: Token inválido o ausente
+- **403 Forbidden**: Usuario sin permisos suficientes
+
+---
+
+## Actualizar Ruma
+
+<api method="PUT" path="/api/inventario/rumas/{id}" />
+
+Actualiza la información de una ruma existente.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la ruma a actualizar
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="codigo" type="string" required>
+  Código único de la ruma (máx. 20 caracteres)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Nombre descriptivo de la ruma (máx. 100 caracteres)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Descripción adicional (máx. 255 caracteres, opcional)
+</ParamField>
+
+<ParamField body="condiciones" type="string">
+  Condiciones de almacenamiento (máx. 100 caracteres, opcional)
+</ParamField>
+
+<ParamField body="capacidad_unidades" type="integer" required>
+  Capacidad máxima en unidades (mínimo 1, no puede ser menor al stock actual)
+</ParamField>
+
+<ParamField body="ubicacion_fisica" type="string" required>
+  Ubicación física en el almacén (máx. 150 caracteres)
+</ParamField>
+
+<ParamField body="estado" type="string" required>
+  Estado de la ruma. Valores permitidos: `ACTIVA`, `INACTIVA`
+</ParamField>
+
+### Validaciones Especiales
+
+<Warning>
+  La capacidad no puede ser menor al stock actual. Si intentas reducir la capacidad por debajo del stock actual, recibirás un error 422.
+</Warning>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.fabricamarie.com/api/inventario/rumas/10" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "codigo": "RUMA-C10",
+    "nombre": "Ruma C10 - Pasteles Premium",
+    "descripcion": "Área exclusiva para pasteles premium",
+    "condiciones": "Refrigerado 2-6°C con humedad controlada",
+    "capacidad_unidades": 1000,
+    "ubicacion_fisica": "Cámara Frigorífica Premium - Sector C",
+    "estado": "ACTIVA"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/rumas/10', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    codigo: 'RUMA-C10',
+    nombre: 'Ruma C10 - Pasteles Premium',
+    capacidad_unidades: 1000,
+    ubicacion_fisica: 'Cámara Frigorífica Premium - Sector C',
+    estado: 'ACTIVA'
+  })
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "message": "Ruma actualizada correctamente",
+  "data": {
+    "id": 10,
+    "codigo": "RUMA-C10",
+    "nombre": "Ruma C10 - Pasteles Premium",
+    "descripcion": "Área exclusiva para pasteles premium",
+    "condiciones": "Refrigerado 2-6°C con humedad controlada",
+    "capacidad_unidades": 1000,
+    "ubicacion_fisica": "Cámara Frigorífica Premium - Sector C",
+    "estado": "ACTIVA"
+  }
+}
+```
+
+### Error: Capacidad Menor al Stock
+
+```json
+{
+  "message": "La capacidad no puede ser menor al stock actual (850)"
+}
+```
+
+---
+
+## Eliminar Ruma
+
+<api method="DELETE" path="/api/inventario/rumas/{id}" />
+
+Elimina permanentemente una ruma del sistema.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la ruma a eliminar
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Validaciones
+
+<Warning>
+  No se puede eliminar una ruma que tenga stock registrado. Primero debes mover todo el stock a otras rumas.
+</Warning>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE "https://api.fabricamarie.com/api/inventario/rumas/10" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/rumas/10', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta Exitosa
+
+```json
+{
+  "message": "Ruma eliminada correctamente"
+}
+```
+
+### Error: Ruma con Stock
+
+```json
+{
+  "message": "No se puede eliminar la ruma porque tiene stock registrado"
+}
+```

@@ -1,0 +1,241 @@
+---
+title: 'Crear Venta'
+api: 'POST /api/ventas'
+description: 'Crea una nueva venta en estado borrador con items y reserva de stock'
+---
+
+## Autenticación
+
+Requiere autenticación mediante token Bearer.
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+## Parámetros de la Solicitud
+
+<ParamField body="cliente_id" type="integer" required>
+  ID del cliente que realiza la compra
+</ParamField>
+
+<ParamField body="vendedor_id" type="integer" required>
+  ID del vendedor asignado a la venta
+</ParamField>
+
+<ParamField body="tipo_pago" type="string" required>
+  Tipo de pago de la venta. Valores permitidos: `CONTADO`, `CREDITO`
+</ParamField>
+
+<ParamField body="metodo_pago_detalle" type="string">
+  Detalles adicionales del método de pago (máximo 100 caracteres)
+</ParamField>
+
+<ParamField body="adelanto" type="number">
+  Monto de adelanto para ventas a crédito (mínimo: 0)
+</ParamField>
+
+<ParamField body="descuento" type="number">
+  Monto de descuento aplicado a la venta (mínimo: 0)
+</ParamField>
+
+<ParamField body="total_neto" type="number" required>
+  Monto total neto de la venta (mínimo: 0)
+</ParamField>
+
+<ParamField body="items" type="array" required>
+  Lista de productos incluidos en la venta (mínimo 1 item)
+  
+  <Expandable title="Estructura de cada item">
+    <ParamField body="items[].producto_id" type="integer" required>
+      ID del producto
+    </ParamField>
+    
+    <ParamField body="items[].salida_id" type="integer" required>
+      ID de la salida de inventario asociada
+    </ParamField>
+    
+    <ParamField body="items[].cantidad" type="number" required>
+      Cantidad del producto (mínimo: 1)
+    </ParamField>
+    
+    <ParamField body="items[].precio_unitario" type="number" required>
+      Precio unitario del producto (mínimo: 0)
+    </ParamField>
+    
+    <ParamField body="items[].subtotal" type="number" required>
+      Subtotal del item (mínimo: 0)
+    </ParamField>
+    
+    <ParamField body="items[].es_bonificacion" type="boolean">
+      Indica si el item es una bonificación (default: false)
+    </ParamField>
+    
+    <ParamField body="items[].es_degustacion" type="boolean">
+      Indica si el item es una degustación (default: false)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Respuesta Exitosa
+
+<ResponseField name="id" type="integer">
+  ID único de la venta creada
+</ResponseField>
+
+<ResponseField name="codigo" type="string">
+  Código único de la venta (formato: VTA-XXXXXX)
+</ResponseField>
+
+<ResponseField name="cliente_id" type="integer">
+  ID del cliente
+</ResponseField>
+
+<ResponseField name="vendedor_id" type="integer">
+  ID del vendedor
+</ResponseField>
+
+<ResponseField name="fecha" type="string">
+  Fecha de creación de la venta (formato: Y-m-d H:i:s)
+</ResponseField>
+
+<ResponseField name="tipo_pago" type="string">
+  Tipo de pago: CONTADO o CREDITO
+</ResponseField>
+
+<ResponseField name="metodo_pago_detalle" type="string">
+  Detalles del método de pago
+</ResponseField>
+
+<ResponseField name="adelanto" type="number">
+  Monto de adelanto (solo para crédito)
+</ResponseField>
+
+<ResponseField name="descuento" type="number">
+  Descuento aplicado
+</ResponseField>
+
+<ResponseField name="total_neto" type="number">
+  Total neto de la venta
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la venta (BORRADOR al crear)
+</ResponseField>
+
+<ResponseField name="items" type="array">
+  Lista de items de la venta con sus detalles
+</ResponseField>
+
+## Comportamiento
+
+- La venta se crea automáticamente en estado **BORRADOR**
+- La fecha se establece automáticamente al momento de creación
+- Se genera un código único con formato `VTA-XXXXXX`
+- Si el tipo de pago es CREDITO:
+  - Se crea automáticamente una cuenta por cobrar
+  - El saldo inicial es: `total_neto - adelanto`
+  - El estado de la cuenta es PENDIENTE
+- Se reserva el stock automáticamente para los items incluidos
+- La operación se ejecuta dentro de una transacción de base de datos
+
+<CodeGroup>
+
+```json Ejemplo de Solicitud
+{
+  "cliente_id": 45,
+  "vendedor_id": 12,
+  "tipo_pago": "CREDITO",
+  "metodo_pago_detalle": "Transferencia bancaria",
+  "adelanto": 500.00,
+  "descuento": 50.00,
+  "total_neto": 1500.00,
+  "items": [
+    {
+      "producto_id": 101,
+      "salida_id": 230,
+      "cantidad": 10,
+      "precio_unitario": 100.00,
+      "subtotal": 1000.00,
+      "es_bonificacion": false,
+      "es_degustacion": false
+    },
+    {
+      "producto_id": 102,
+      "salida_id": 230,
+      "cantidad": 5,
+      "precio_unitario": 110.00,
+      "subtotal": 550.00,
+      "es_bonificacion": false,
+      "es_degustacion": false
+    }
+  ]
+}
+```
+
+```json Respuesta 201 Created
+{
+  "id": 1523,
+  "codigo": "VTA-001523",
+  "cliente_id": 45,
+  "vendedor_id": 12,
+  "fecha": "2026-03-11 10:30:45",
+  "tipo_pago": "CREDITO",
+  "metodo_pago_detalle": "Transferencia bancaria",
+  "adelanto": 500.00,
+  "descuento": 50.00,
+  "total_neto": 1500.00,
+  "estado": "BORRADOR",
+  "items": [
+    {
+      "id": 3041,
+      "venta_id": 1523,
+      "producto_id": 101,
+      "salida_id": 230,
+      "cantidad": 10,
+      "precio_unitario": 100.00,
+      "subtotal": 1000.00,
+      "es_bonificacion": false,
+      "es_degustacion": false
+    },
+    {
+      "id": 3042,
+      "venta_id": 1523,
+      "producto_id": 102,
+      "salida_id": 230,
+      "cantidad": 5,
+      "precio_unitario": 110.00,
+      "subtotal": 550.00,
+      "es_bonificacion": false,
+      "es_degustacion": false
+    }
+  ]
+}
+```
+
+```json Error 422 - Validación
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "cliente_id": [
+      "El campo cliente_id es obligatorio."
+    ],
+    "items": [
+      "Debe incluir al menos un item en la venta."
+    ]
+  }
+}
+```
+
+```json Error 500 - Stock Insuficiente
+{
+  "message": "Stock insuficiente para reservar"
+}
+```
+
+</CodeGroup>
+
+## Endpoints Relacionados
+
+- [Confirmar Venta](/api/sales/sale-details#confirmar-venta) - Confirma una venta en borrador
+- [Listar Ventas](/api/sales/list-sales) - Obtiene el listado de ventas
+- [Detalles de Venta](/api/sales/sale-details) - Obtiene los detalles completos de una venta

@@ -1,0 +1,524 @@
+---
+title: 'Salidas de Productos'
+description: 'Gestión de salidas de inventario para vendedores'
+---
+
+## Listar Salidas
+
+<api method="GET" path="/api/inventario/salidas" />
+
+Obtiene la lista de todas las salidas de productos registradas, incluyendo información del vendedor, vehículo, ruta e items.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único de la salida
+</ResponseField>
+
+<ResponseField name="fecha" type="date">
+  Fecha de la salida
+</ResponseField>
+
+<ResponseField name="vendedor_id" type="integer">
+  ID del vendedor asignado
+</ResponseField>
+
+<ResponseField name="conductor" type="string" nullable>
+  Nombre del conductor (si es diferente al vendedor)
+</ResponseField>
+
+<ResponseField name="vehiculo_id" type="integer">
+  ID del vehículo asignado
+</ResponseField>
+
+<ResponseField name="zona" type="string">
+  Zona de distribución
+</ResponseField>
+
+<ResponseField name="ruta_id" type="integer">
+  ID de la ruta asignada
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado de la salida: `PENDIENTE`, `EN_RUTA`, `COMPLETADO`
+</ResponseField>
+
+<ResponseField name="vendedor" type="object">
+  Objeto con información del vendedor y su usuario
+</ResponseField>
+
+<ResponseField name="vehiculo" type="object">
+  Objeto con información del vehículo
+</ResponseField>
+
+<ResponseField name="ruta" type="object">
+  Objeto con información de la ruta
+</ResponseField>
+
+<ResponseField name="items" type="array">
+  Array de productos incluidos en la salida con cantidades
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/salidas" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/salidas', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const salidas = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/inventario/salidas');
+$salidas = $response->json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 25,
+    "fecha": "2024-01-20",
+    "vendedor_id": 5,
+    "conductor": null,
+    "vehiculo_id": 3,
+    "zona": "Norte",
+    "ruta_id": 8,
+    "estado": "EN_RUTA",
+    "vendedor": {
+      "id": 5,
+      "usuario": {
+        "id": 12,
+        "nombre": "Carlos Pérez",
+        "email": "carlos.perez@fabricamarie.com"
+      }
+    },
+    "vehiculo": {
+      "id": 3,
+      "placa": "ABC-123",
+      "marca": "Toyota",
+      "modelo": "Hiace",
+      "tipo": "VAN"
+    },
+    "ruta": {
+      "id": 8,
+      "nombre": "Ruta Norte A",
+      "descripcion": "Zona industrial norte"
+    },
+    "items": [
+      {
+        "id": 50,
+        "salida_id": 25,
+        "producto_id": 1,
+        "ruma_id": 5,
+        "cantidad": 100,
+        "producto": {
+          "id": 1,
+          "sku": "PAN-001",
+          "nombre": "Pan Francés",
+          "precio_base": 15.50
+        },
+        "ruma": {
+          "id": 5,
+          "codigo": "RUMA-A05",
+          "nombre": "Ruma Principal A5"
+        }
+      },
+      {
+        "id": 51,
+        "salida_id": 25,
+        "producto_id": 2,
+        "ruma_id": 5,
+        "cantidad": 80,
+        "producto": {
+          "id": 2,
+          "sku": "PAN-002",
+          "nombre": "Pan Integral",
+          "precio_base": 18.00
+        },
+        "ruma": {
+          "id": 5,
+          "codigo": "RUMA-A05",
+          "nombre": "Ruma Principal A5"
+        }
+      }
+    ]
+  }
+]
+```
+
+---
+
+## Obtener Salida
+
+<api method="GET" path="/api/inventario/salidas/{id}" />
+
+Obtiene información detallada de una salida específica.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la salida
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/salidas/25" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/salidas/25', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const salida = await response.json();
+```
+</CodeGroup>
+
+---
+
+## Crear Salida
+
+<api method="POST" path="/api/inventario/salidas" />
+
+Crea una nueva salida de productos del almacén hacia un vendedor. Este proceso:
+1. Crea el registro de salida
+2. Registra los items de la salida
+3. Asigna stock al vendedor
+4. Genera movimientos de stock tipo SALIDA
+5. Asigna automáticamente el vendedor al vehículo si no existe la relación
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="fecha" type="date" required>
+  Fecha de la salida (formato: YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="vendedor_id" type="integer" required>
+  ID del vendedor asignado
+</ParamField>
+
+<ParamField body="vehiculo_id" type="integer" required>
+  ID del vehículo asignado
+</ParamField>
+
+<ParamField body="ruta_id" type="integer" required>
+  ID de la ruta asignada
+</ParamField>
+
+<ParamField body="zona" type="string" required>
+  Zona de distribución
+</ParamField>
+
+<ParamField body="conductor" type="string">
+  Nombre del conductor (opcional, si es diferente al vendedor)
+</ParamField>
+
+<ParamField body="items" type="array" required>
+  Array de items a incluir en la salida (mínimo 1 item)
+</ParamField>
+
+<ParamField body="items[].producto_id" type="integer" required>
+  ID del producto
+</ParamField>
+
+<ParamField body="items[].ruma_id" type="integer" required>
+  ID de la ruma desde donde se toma el producto
+</ParamField>
+
+<ParamField body="items[].cantidad" type="integer" required>
+  Cantidad de unidades (mínimo 1)
+</ParamField>
+
+### Validaciones
+
+<Warning>
+  **Vendedor ocupado**: El vendedor no puede tener otra salida con estado `PENDIENTE` o `EN_RUTA`.
+</Warning>
+
+<Warning>
+  **Vehículo ocupado**: El vehículo no puede estar asignado a otra salida con estado `PENDIENTE` o `EN_RUTA`.
+</Warning>
+
+<Warning>
+  **Stock insuficiente**: Debe existir stock suficiente en cada ruma para los productos solicitados.
+</Warning>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.fabricamarie.com/api/inventario/salidas" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fecha": "2024-01-20",
+    "vendedor_id": 5,
+    "vehiculo_id": 3,
+    "ruta_id": 8,
+    "zona": "Norte",
+    "items": [
+      {
+        "producto_id": 1,
+        "ruma_id": 5,
+        "cantidad": 100
+      },
+      {
+        "producto_id": 2,
+        "ruma_id": 5,
+        "cantidad": 80
+      }
+    ]
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/salidas', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    fecha: '2024-01-20',
+    vendedor_id: 5,
+    vehiculo_id: 3,
+    ruta_id: 8,
+    zona: 'Norte',
+    items: [
+      {
+        producto_id: 1,
+        ruma_id: 5,
+        cantidad: 100
+      },
+      {
+        producto_id: 2,
+        ruma_id: 5,
+        cantidad: 80
+      }
+    ]
+  })
+});
+const result = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/inventario/salidas', [
+        'fecha' => '2024-01-20',
+        'vendedor_id' => 5,
+        'vehiculo_id' => 3,
+        'ruta_id' => 8,
+        'zona' => 'Norte',
+        'items' => [
+            [
+                'producto_id' => 1,
+                'ruma_id' => 5,
+                'cantidad' => 100
+            ],
+            [
+                'producto_id' => 2,
+                'ruma_id' => 5,
+                'cantidad' => 80
+            ]
+        ]
+    ]);
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta (201 Created)
+
+```json
+{
+  "message": "Salida creada correctamente",
+  "salida": {
+    "id": 26,
+    "fecha": "2024-01-20",
+    "vendedor_id": 5,
+    "conductor": null,
+    "vehiculo_id": 3,
+    "zona": "Norte",
+    "ruta_id": 8,
+    "estado": "PENDIENTE",
+    "items": [
+      {
+        "id": 52,
+        "salida_id": 26,
+        "producto_id": 1,
+        "ruma_id": 5,
+        "cantidad": 100,
+        "producto": {
+          "id": 1,
+          "sku": "PAN-001",
+          "nombre": "Pan Francés"
+        },
+        "ruma": {
+          "id": 5,
+          "codigo": "RUMA-A05",
+          "nombre": "Ruma Principal A5"
+        }
+      },
+      {
+        "id": 53,
+        "salida_id": 26,
+        "producto_id": 2,
+        "ruma_id": 5,
+        "cantidad": 80,
+        "producto": {
+          "id": 2,
+          "sku": "PAN-002",
+          "nombre": "Pan Integral"
+        },
+        "ruma": {
+          "id": 5,
+          "codigo": "RUMA-A05",
+          "nombre": "Ruma Principal A5"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Errores Comunes
+
+#### Vendedor Ocupado
+```json
+{
+  "error": "El vendedor ya tiene una salida pendiente o en ruta"
+}
+```
+
+#### Vehículo Ocupado
+```json
+{
+  "error": "El vehiculo ya tiene una salida pendiente o en ruta"
+}
+```
+
+#### Stock Insuficiente
+```json
+{
+  "error": "Error al crear salida",
+  "details": "Stock insuficiente para realizar la salida"
+}
+```
+
+---
+
+## Actualizar Estado de Salida
+
+<api method="PUT" path="/api/inventario/salidas/estado/{id}" />
+
+Actualiza el estado de una salida existente.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la salida
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="estado" type="string" required>
+  Nuevo estado de la salida. Valores permitidos: `PENDIENTE`, `EN_RUTA`, `COMPLETADO`
+</ParamField>
+
+### Estados y Flujo
+
+1. **PENDIENTE**: Salida creada pero no ha salido del almacén
+2. **EN_RUTA**: Salida en tránsito con el vendedor
+3. **COMPLETADO**: Salida completada, vendedor ha retornado
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.fabricamarie.com/api/inventario/salidas/estado/26" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "EN_RUTA"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/salidas/estado/26', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    estado: 'EN_RUTA'
+  })
+});
+const result = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->put('https://api.fabricamarie.com/api/inventario/salidas/estado/26', [
+        'estado' => 'EN_RUTA'
+    ]);
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "message": "Estado Actualizado"
+}
+```
+
+### Casos de Uso
+
+<Accordion title="Salida del Almacén">
+  Cuando el vendedor sale del almacén con los productos, cambiar de `PENDIENTE` a `EN_RUTA`.
+</Accordion>
+
+<Accordion title="Retorno del Vendedor">
+  Cuando el vendedor completa su ruta y retorna, cambiar de `EN_RUTA` a `COMPLETADO`.
+</Accordion>
+
+<Accordion title="Cancelación">
+  Si necesitas cancelar una salida que aún no ha partido, puedes cambiarla a `PENDIENTE` o considerar eliminar el registro.
+</Accordion>

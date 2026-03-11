@@ -1,0 +1,803 @@
+---
+title: 'Proceso de Ventas'
+description: 'Guía completa del flujo de ventas: desde la selección de productos hasta el cobro y gestión de créditos'
+icon: 'cart-shopping'
+---
+
+## Descripción General
+
+Esta guía cubre el proceso completo de ventas en Fabrica Marie ERP, desde la creación de una venta hasta el cobro de cuentas por cobrar. Está diseñada principalmente para vendedores, pero también es útil para gerentes y supervisores.
+
+<Info>
+  **Roles con acceso:** ADMIN, VENDEDOR, GERENTE, SUPERVISOR, ALMACENERO, CAJERO
+</Info>
+
+## Conceptos Fundamentales
+
+### Estados de una Venta
+
+Cada venta pasa por dos estados:
+
+<Steps>
+  <Step title="BORRADOR">
+    Venta creada pero no confirmada. El stock se **reserva** pero no se descuenta. Aún se puede editar o cancelar.
+  </Step>
+
+  <Step title="CONFIRMADA">
+    Venta finalizada. El stock se **descuenta definitivamente** del vendedor. Se registra el movimiento en caja. No se puede modificar.
+  </Step>
+</Steps>
+
+### Tipos de Pago
+
+<CardGroup cols={2}>
+  <Card title="CONTADO" icon="money-bill" color="#16a34a">
+    **Pago inmediato completo**
+    
+    - Cliente paga el total en el momento
+    - Dinero ingresa a caja inmediatamente
+    - No genera cuenta por cobrar
+    - Flujo de efectivo inmediato
+  </Card>
+
+  <Card title="CREDITO" icon="clock" color="#dc2626">
+    **Pago diferido**
+    
+    - Cliente pagará en el futuro
+    - Puede incluir adelanto parcial
+    - Genera cuenta por cobrar
+    - Requiere seguimiento de cobro
+  </Card>
+</CardGroup>
+
+## Flujo Completo de Venta
+
+### Paso 1: Preparación
+
+Antes de realizar ventas, el vendedor debe:
+
+<Steps>
+  <Step title="Recibir salida de fábrica">
+    El almacén prepara una salida con productos para tu ruta:
+    
+    ```bash
+    GET /api/inventario/salidas?vendedor_id={tu_id}&estado=PENDIENTE
+    Authorization: Bearer {token}
+    ```
+  </Step>
+
+  <Step title="Verificar stock asignado">
+    Consulta tu stock disponible:
+    
+    ```bash
+    GET /api/inventario/productos/vendedores/{vendedor_id}
+    Authorization: Bearer {token}
+    ```
+
+    **Respuesta:**
+    ```json
+    [
+      {
+        "producto_id": 1,
+        "nombre": "Pan Blanco Grande",
+        "salida_id": 45,
+        "cantidad": 150,
+        "stock_reservado": 0,
+        "vendido": 0,
+        "devuelto": 0
+      }
+    ]
+    ```
+  </Step>
+
+  <Step title="Iniciar ruta">
+    Actualiza el estado de tu salida:
+    
+    ```bash
+    PUT /api/inventario/salidas/estado/45
+    Authorization: Bearer {token}
+    
+    {
+      "estado": "EN_RUTA"
+    }
+    ```
+  </Step>
+</Steps>
+
+### Paso 2: Crear Venta en Borrador
+
+<Steps>
+  <Step title="Seleccionar cliente">
+    Identifica al cliente de tu ruta:
+    
+    ```bash
+    GET /api/clientes?ruta_id={ruta_id}
+    Authorization: Bearer {token}
+    ```
+  </Step>
+
+  <Step title="Construir el pedido">
+    El cliente selecciona productos y cantidades. Prepara la estructura de la venta.
+  </Step>
+
+  <Step title="Crear venta en borrador">
+    ```bash
+    POST /api/ventas
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "cliente_id": 15,
+      "vendedor_id": 5,
+      "tipo_pago": "CONTADO",
+      "metodo_pago_detalle": "Efectivo",
+      "descuento": 0,
+      "total_neto": 525.00,
+      "items": [
+        {
+          "producto_id": 1,
+          "salida_id": 45,
+          "cantidad": 50,
+          "precio_unitario": 3.50,
+          "subtotal": 175.00,
+          "es_bonificacion": false,
+          "es_degustacion": false
+        },
+        {
+          "producto_id": 2,
+          "salida_id": 45,
+          "cantidad": 100,
+          "precio_unitario": 3.50,
+          "subtotal": 350.00,
+          "es_bonificacion": false,
+          "es_degustacion": false
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Recibir respuesta">
+    El sistema responde con la venta creada:
+
+    ```json
+    {
+      "id": 1234,
+      "codigo": "VTA-001234",
+      "cliente_id": 15,
+      "vendedor_id": 5,
+      "fecha": "2026-03-11 10:30:00",
+      "tipo_pago": "CONTADO",
+      "total_neto": 525.00,
+      "estado": "BORRADOR",
+      "items": [
+        {
+          "producto_id": 1,
+          "cantidad": 50,
+          "precio_unitario": 3.50,
+          "subtotal": 175.00
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Al crear la venta en BORRADOR, el sistema **reserva** automáticamente el stock pero NO lo descuenta. Esto permite que el cliente revise el pedido antes de confirmar.
+</Note>
+
+### Paso 3: Confirmar la Venta
+
+Una vez que el cliente aprueba el pedido:
+
+<Steps>
+  <Step title="Confirmar la venta">
+    ```bash
+    PUT /api/ventas/{id}/confirmar
+    Authorization: Bearer {token}
+    ```
+  </Step>
+
+  <Step title="Proceso automático">
+    El sistema ejecuta automáticamente:
+
+    ✅ **Validación de stock**: Verifica que haya stock suficiente reservado
+    
+    ✅ **Descuento de stock**: Convierte la reserva en descuento real del stock del vendedor
+    
+    ✅ **Registro en caja**: 
+    - CONTADO: Ingresa el total completo
+    - CREDITO: Ingresa solo el adelanto (si lo hay)
+    
+    ✅ **Creación de cuenta por cobrar**: Si es crédito, crea la cuenta automáticamente
+    
+    ✅ **Cambio de estado**: La venta pasa a CONFIRMADA
+  </Step>
+
+  <Step title="Verificar confirmación">
+    ```json
+    {
+      "message": "Venta confirmada correctamente",
+      "venta_id": 1234
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Una vez confirmada, la venta **NO puede editarse ni eliminarse**. Solo puede anularse con permisos especiales, y esto reversa todas las operaciones.
+</Warning>
+
+### Validaciones Importantes
+
+El sistema valida:
+
+- ✅ Stock suficiente para cada producto
+- ✅ Productos pertenecen a la salida del vendedor
+- ✅ Cliente existe y está activo
+- ✅ Total calculado correctamente
+- ✅ Cantidades son positivas
+- ✅ Precios son válidos
+
+## Ventas al Contado
+
+### Características
+
+- Pago completo inmediato
+- Registro automático en caja
+- No genera cuentas por cobrar
+- Flujo más simple
+
+### Ejemplo Completo
+
+```bash
+POST /api/ventas
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "cliente_id": 20,
+  "vendedor_id": 5,
+  "tipo_pago": "CONTADO",
+  "metodo_pago_detalle": "Efectivo",
+  "total_neto": 350.00,
+  "items": [
+    {
+      "producto_id": 1,
+      "salida_id": 45,
+      "cantidad": 100,
+      "precio_unitario": 3.50,
+      "subtotal": 350.00
+    }
+  ]
+}
+```
+
+Después de crear, confirmar inmediatamente:
+
+```bash
+PUT /api/ventas/1235/confirmar
+Authorization: Bearer {token}
+```
+
+El sistema registra automáticamente en caja:
+
+```
+INGRESO | S/ 350.00 | VENTA | Venta confirmada, Venta #1235
+```
+
+## Ventas al Crédito
+
+### Características
+
+- Pago diferido total o parcial
+- Puede incluir adelanto
+- Genera cuenta por cobrar automáticamente
+- Requiere seguimiento de cobros
+
+### Venta con Adelanto
+
+```bash
+POST /api/ventas
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "cliente_id": 18,
+  "vendedor_id": 5,
+  "tipo_pago": "CREDITO",
+  "adelanto": 200.00,
+  "total_neto": 600.00,
+  "items": [
+    {
+      "producto_id": 1,
+      "salida_id": 45,
+      "cantidad": 100,
+      "precio_unitario": 3.50,
+      "subtotal": 350.00
+    },
+    {
+      "producto_id": 3,
+      "salida_id": 45,
+      "cantidad": 50,
+      "precio_unitario": 5.00,
+      "subtotal": 250.00
+    }
+  ]
+}
+```
+
+Al confirmar, el sistema:
+
+1. **Registra adelanto en caja:**
+   ```
+   INGRESO | S/ 200.00 | VENTA | Venta al crédito confirmada, Venta #1236
+   ```
+
+2. **Crea cuenta por cobrar:**
+   ```json
+   {
+     "id": 450,
+     "venta_id": 1236,
+     "cliente_id": 18,
+     "monto_total": 600.00,
+     "saldo": 400.00,
+     "estado": "PENDIENTE"
+   }
+   ```
+
+### Venta a Crédito Total
+
+Sin adelanto:
+
+```json
+{
+  "cliente_id": 18,
+  "vendedor_id": 5,
+  "tipo_pago": "CREDITO",
+  "adelanto": 0,
+  "total_neto": 600.00,
+  "items": [...]
+}
+```
+
+En este caso:
+- No se registra ingreso inmediato a caja
+- La cuenta por cobrar tiene saldo completo: S/ 600.00
+
+## Bonificaciones y Degustaciones
+
+### Productos de Bonificación
+
+Productos regalados al cliente como promoción:
+
+```json
+{
+  "producto_id": 5,
+  "salida_id": 45,
+  "cantidad": 10,
+  "precio_unitario": 0,
+  "subtotal": 0,
+  "es_bonificacion": true,
+  "es_degustacion": false
+}
+```
+
+<Note>
+  Las bonificaciones **sí descuentan stock** del vendedor aunque no generen ingreso.
+</Note>
+
+### Productos de Degustación
+
+Muestras gratis para prospectos:
+
+```json
+{
+  "producto_id": 7,
+  "salida_id": 45,
+  "cantidad": 5,
+  "precio_unitario": 0,
+  "subtotal": 0,
+  "es_bonificacion": false,
+  "es_degustacion": true
+}
+```
+
+## Gestión de Cuentas por Cobrar
+
+### Consultar Cuentas Pendientes
+
+Ver todas las cuentas por cobrar:
+
+```bash
+GET /api/cuentas-por-cobrar
+Authorization: Bearer {token}
+```
+
+**Filtrar por cliente:**
+
+```bash
+GET /api/cuentas-por-cobrar?cliente_id=18
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 450,
+    "venta": {
+      "id": 1236,
+      "codigo": "VTA-001236",
+      "fecha": "2026-03-11"
+    },
+    "cliente": {
+      "id": 18,
+      "razon_social": "Bodega Miñita",
+      "ruc": "20123456789"
+    },
+    "monto_total": 600.00,
+    "saldo": 400.00,
+    "estado": "PENDIENTE",
+    "abonos": []
+  }
+]
+```
+
+### Registrar Abono (Pago Parcial)
+
+Cuando el cliente paga parcial o totalmente su deuda:
+
+<Steps>
+  <Step title="Verificar cuenta pendiente">
+    Identifica la cuenta por cobrar y su saldo actual.
+  </Step>
+
+  <Step title="Registrar abono">
+    ```bash
+    POST /api/abonos
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "cuenta_id": 450,
+      "caja_id": 12,
+      "monto": 200.00,
+      "metodo_pago": "Efectivo"
+    }
+    ```
+  </Step>
+
+  <Step title="Proceso automático">
+    El sistema:
+    
+    ✅ Registra el ingreso en caja
+    
+    ✅ Crea el abono vinculado a la cuenta
+    
+    ✅ Descuenta el saldo de la cuenta: S/ 400 - S/ 200 = S/ 200
+    
+    ✅ Si el saldo llega a 0, cambia estado a PAGADO
+    
+    ✅ Si aún hay saldo, cambia estado a PARCIAL
+  </Step>
+</Steps>
+
+### Ver Historial de Abonos
+
+```bash
+GET /api/cuentas-por-cobrar/{id}
+Authorization: Bearer {token}
+```
+
+**Respuesta con abonos:**
+
+```json
+{
+  "id": 450,
+  "monto_total": 600.00,
+  "saldo": 200.00,
+  "estado": "PARCIAL",
+  "abonos": [
+    {
+      "id": 89,
+      "monto": 200.00,
+      "metodo_pago": "Efectivo",
+      "fecha": "2026-03-12 14:30:00"
+    },
+    {
+      "id": 95,
+      "monto": 200.00,
+      "metodo_pago": "Transferencia",
+      "fecha": "2026-03-15 10:00:00"
+    }
+  ]
+}
+```
+
+## Consultar y Reportar Ventas
+
+### Listar Ventas
+
+```bash
+GET /api/ventas
+Authorization: Bearer {token}
+```
+
+### Reporte de Ventas con Filtros
+
+```bash
+GET /api/ventas/reporte?fecha_desde=2026-03-01&fecha_hasta=2026-03-11&vendedor_id=5
+Authorization: Bearer {token}
+```
+
+**Parámetros disponibles:**
+- `fecha_desde`: Fecha inicial (YYYY-MM-DD)
+- `fecha_hasta`: Fecha final (YYYY-MM-DD)
+- `cliente_id`: Filtrar por cliente
+- `vendedor_id`: Filtrar por vendedor
+- `producto_id`: Filtrar ventas que incluyan un producto
+- `tipo_pago`: CONTADO o CREDITO
+
+**Respuesta:**
+
+```json
+{
+  "filtros": {
+    "fecha_desde": "2026-03-01",
+    "fecha_hasta": "2026-03-11",
+    "vendedor_id": 5
+  },
+  "resumen": {
+    "cantidad_ventas": 45,
+    "total_vendido": 15750.00,
+    "total_contado": 10200.00,
+    "total_credito": 5550.00
+  },
+  "ventas": [
+    {
+      "codigo": "VTA-001234",
+      "fecha": "2026-03-11",
+      "cliente": {
+        "razon_social": "Bodega El Sol"
+      },
+      "tipo_pago": "CONTADO",
+      "total_neto": 525.00
+    }
+  ]
+}
+```
+
+### Exportar Reporte a Excel
+
+```bash
+GET /api/ventas/exportar-excel?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+Descarga un archivo Excel (.xls) con todas las ventas del período.
+
+## Ver Detalle de una Venta
+
+```bash
+GET /api/ventas/{id}
+Authorization: Bearer {token}
+```
+
+**Respuesta completa:**
+
+```json
+{
+  "venta": {
+    "id": 1234,
+    "codigo": "VTA-001234",
+    "fecha": "2026-03-11 10:30:00",
+    "estado": "CONFIRMADA",
+    "tipo_pago": "CREDITO",
+    "adelanto": 200.00,
+    "total_neto": 600.00,
+    "cliente": {
+      "razon_social": "Bodega Miñita",
+      "direccion": "Av. Los Olivos 123"
+    },
+    "vendedor": {
+      "usuario": {
+        "nombre": "Carlos Mendoza"
+      }
+    },
+    "items": [
+      {
+        "producto": {
+          "nombre": "Pan Blanco Grande"
+        },
+        "cantidad": 100,
+        "precio_unitario": 3.50,
+        "subtotal": 350.00
+      }
+    ],
+    "cuenta": {
+      "monto_total": 600.00,
+      "saldo": 400.00,
+      "estado": "PENDIENTE",
+      "abonos": [
+        {
+          "monto": 200.00,
+          "fecha": "2026-03-12"
+        }
+      ]
+    }
+  }
+}
+```
+
+## Editar Venta en Borrador
+
+<Warning>
+  Solo puedes editar ventas en estado BORRADOR. Una vez confirmadas, no se pueden modificar.
+</Warning>
+
+```bash
+PUT /api/ventas/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "cliente_id": 15,
+  "tipo_pago": "CONTADO",
+  "fecha": "2026-03-11",
+  "items": [
+    {
+      "producto_id": 1,
+      "cantidad": 75,
+      "precio_unitario": 3.50
+    }
+  ]
+}
+```
+
+## Eliminar Venta en Borrador
+
+Solo puedes eliminar ventas en BORRADOR:
+
+```bash
+DELETE /api/ventas/{id}
+Authorization: Bearer {token}
+```
+
+El sistema:
+- Libera la reserva de stock
+- Elimina los items
+- Elimina la venta
+
+## Anular Venta Confirmada
+
+<Warning>
+  Anular ventas es una operación delicada que requiere permisos especiales. Solo usuarios con permisos administrativos pueden anular ventas confirmadas.
+</Warning>
+
+```bash
+POST /api/ventas/{id}/anular
+Authorization: Bearer {token}
+```
+
+Al anular, el sistema reversa:
+- Stock del vendedor
+- Movimientos de caja
+- Cuentas por cobrar
+- Abonos registrados
+
+## Flujo de Trabajo Diario del Vendedor
+
+<Steps>
+  <Step title="Inicio de Jornada (8:00 AM)">
+    - Recibir salida de fábrica
+    - Verificar stock asignado
+    - Revisar ruta del día
+    - Iniciar recorrido (cambiar salida a EN_RUTA)
+  </Step>
+
+  <Step title="Durante el Recorrido (8:30 AM - 5:00 PM)">
+    Para cada cliente:
+    1. Crear venta en borrador
+    2. Confirmar con el cliente
+    3. Confirmar la venta en el sistema
+    4. Si es crédito, acordar fechas de pago
+    5. Si tiene cuenta pendiente, cobrar abonos
+  </Step>
+
+  <Step title="Fin de Jornada (5:00 PM)">
+    - Completar salida (cambiar a COMPLETADO)
+    - Entregar dinero recolectado a caja
+    - Devolver productos no vendidos
+    - Generar reporte de ventas del día
+  </Step>
+</Steps>
+
+## Imprimir Comprobantes
+
+Después de confirmar una venta, puedes generar comprobantes:
+
+```bash
+GET /api/ventas/{id}/comprobante
+Authorization: Bearer {token}
+```
+
+Esto genera un documento PDF o texto con:
+- Código de venta
+- Fecha y hora
+- Datos del cliente
+- Detalle de productos
+- Total a pagar
+- Saldo pendiente (si es crédito)
+
+## Buenas Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Confirmación Inmediata" icon="check">
+    Confirma ventas inmediatamente después de cerrar con el cliente. No acumules ventas en borrador.
+  </Card>
+
+  <Card title="Verificación de Datos" icon="magnifying-glass">
+    Verifica cliente, productos y montos antes de confirmar. Las ventas confirmadas no se pueden editar.
+  </Card>
+
+  <Card title="Seguimiento de Créditos" icon="calendar">
+    Revisa diariamente las cuentas por cobrar de tu ruta. Programa cobros con tus clientes.
+  </Card>
+
+  <Card title="Documentación" icon="receipt">
+    Imprime o envía comprobantes a los clientes. Mantén registro de todas las transacciones.
+  </Card>
+</CardGroup>
+
+## Código de Referencia
+
+**VentaController.php** (`app/Http/Controllers/Api/VentaController.php:178-246`)
+
+```php
+// Crear venta en borrador
+public function store(Request $request)
+{
+    return DB::transaction(function () use ($validated) {
+        $venta = Venta::create([
+            'cliente_id' => $validated['cliente_id'],
+            'vendedor_id' => $validated['vendedor_id'],
+            'fecha' => Carbon::now(),
+            'tipo_pago' => $validated['tipo_pago'],
+            'adelanto' => $validated['tipo_pago'] === 'CREDITO' 
+                            ? ($validated['adelanto'] ?? 0) : 0,
+            'total_neto' => $validated['total_neto'],
+            'estado' => 'BORRADOR'
+        ]);
+
+        // Crear cuenta si es crédito
+        if ($venta->tipo_pago === 'CREDITO') {
+            $venta->cuenta()->create([
+                'cliente_id' => $venta->cliente_id,
+                'monto_total' => $venta->total_neto,
+                'saldo' => $venta->total_neto - $venta->adelanto,
+                'estado' => 'PENDIENTE'
+            ]);
+        }
+
+        // Reservar Stock
+        $this->reservarStock($venta);
+
+        return $venta->load('items');
+    });
+}
+```
+
+## Siguientes Pasos
+
+<CardGroup cols={2}>
+  <Card title="Operaciones de Caja" icon="cash-register" href="/guides/cash-operations">
+    Aprende a gestionar el efectivo recolectado.
+  </Card>
+
+  <Card title="Reportes del Sistema" icon="chart-line" href="/guides/reports">
+    Consulta reportes de ventas y rendimiento.
+  </Card>
+</CardGroup>

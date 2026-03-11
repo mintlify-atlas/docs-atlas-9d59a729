@@ -1,0 +1,512 @@
+---
+title: 'Rutas de Clientes'
+description: 'Gestión de rutas de distribución y asignación de clientes'
+---
+
+## Listar Rutas
+
+<Note>
+  Obtiene la lista de todas las rutas activas con conteo de clientes asignados.
+</Note>
+
+### Endpoint
+
+```
+GET /api/rutas
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Respuesta
+
+Retorna un array de rutas activas.
+
+<ResponseField name="[]" type="array">
+  Array de objetos de ruta
+  
+  <Expandable title="Propiedades de cada ruta">
+    <ResponseField name="id" type="integer">
+      ID único de la ruta
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Nombre de la ruta
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Descripción de la ruta
+    </ResponseField>
+    
+    <ResponseField name="activo" type="boolean">
+      Estado de la ruta (true = activa)
+    </ResponseField>
+    
+    <ResponseField name="clientes_count" type="integer">
+      Número de clientes asignados a esta ruta
+    </ResponseField>
+    
+    <ResponseField name="clientes" type="array">
+      Lista de clientes asignados con información completa
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X GET "https://api.fabricamarie.com/api/rutas" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+[
+  {
+    "id": 5,
+    "nombre": "Ruta Centro",
+    "descripcion": "Zona centro de la ciudad",
+    "activo": true,
+    "clientes_count": 15,
+    "clientes": [
+      {
+        "id": 45,
+        "codigo_cliente": "CLI-00045",
+        "razon_social": "Distribuidora El Sol S.A.",
+        "direccion": "Av. Principal 123",
+        "telefono": "555-1234"
+      },
+      {
+        "id": 46,
+        "codigo_cliente": "CLI-00046",
+        "razon_social": "Tienda La Esperanza",
+        "direccion": "Calle 5 #234",
+        "telefono": "555-5678"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "nombre": "Ruta Norte",
+    "descripcion": "Zona norte y periférica",
+    "activo": true,
+    "clientes_count": 22,
+    "clientes": []
+  }
+]
+```
+
+</CodeGroup>
+
+---
+
+## Crear Ruta
+
+<Note>
+  Crea una nueva ruta de distribución en el sistema.
+</Note>
+
+### Endpoint
+
+```
+POST /api/rutas
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros del Body
+
+<ParamField body="nombre" type="string" required>
+  Nombre de la ruta
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Descripción de la ruta
+</ParamField>
+
+<ParamField body="activo" type="boolean">
+  Estado de la ruta (default: true)
+</ParamField>
+
+<CodeGroup>
+
+```json Ejemplo de solicitud
+{
+  "nombre": "Ruta Sur",
+  "descripcion": "Zona sur de la ciudad y alrededores",
+  "activo": true
+}
+```
+
+```json Respuesta 201 Created
+{
+  "id": 7,
+  "nombre": "Ruta Sur",
+  "descripcion": "Zona sur de la ciudad y alrededores",
+  "activo": true,
+  "created_at": "2026-03-11T10:30:00.000000Z",
+  "updated_at": "2026-03-11T10:30:00.000000Z"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Ver Detalles de Ruta
+
+<Note>
+  Obtiene información completa de una ruta específica incluyendo todos sus clientes.
+</Note>
+
+### Endpoint
+
+```
+GET /api/rutas/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la ruta a consultar
+</ParamField>
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID de la ruta
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Nombre de la ruta
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Descripción de la ruta
+</ResponseField>
+
+<ResponseField name="activo" type="boolean">
+  Estado de la ruta
+</ResponseField>
+
+<ResponseField name="clientes" type="array">
+  Lista completa de clientes asignados con información del pivot (orden)
+</ResponseField>
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X GET "https://api.fabricamarie.com/api/rutas/5" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "id": 5,
+  "nombre": "Ruta Centro",
+  "descripcion": "Zona centro de la ciudad",
+  "activo": true,
+  "clientes": [
+    {
+      "id": 45,
+      "codigo_cliente": "CLI-00045",
+      "razon_social": "Distribuidora El Sol S.A.",
+      "direccion": "Av. Principal 123",
+      "telefono": "555-1234",
+      "condicion_pago": "CREDITO",
+      "pivot": {
+        "ruta_id": 5,
+        "cliente_id": 45,
+        "orden": 1
+      }
+    },
+    {
+      "id": 46,
+      "codigo_cliente": "CLI-00046",
+      "razon_social": "Tienda La Esperanza",
+      "direccion": "Calle 5 #234",
+      "telefono": "555-5678",
+      "condicion_pago": "CONTADO",
+      "pivot": {
+        "ruta_id": 5,
+        "cliente_id": 46,
+        "orden": 2
+      }
+    }
+  ]
+}
+```
+
+```json Error 404 - No encontrada
+{
+  "message": "No query results for model [App\\Models\\Ruta] 5"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Actualizar Ruta
+
+<Note>
+  Actualiza la información de una ruta existente.
+</Note>
+
+### Endpoint
+
+```
+PUT /api/rutas/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la ruta a actualizar
+</ParamField>
+
+### Parámetros del Body
+
+Puede enviar cualquiera de los campos del modelo Ruta para actualizar.
+
+<CodeGroup>
+
+```json Ejemplo de actualización
+{
+  "nombre": "Ruta Centro Ampliada",
+  "descripcion": "Zona centro de la ciudad incluyendo nuevas áreas"
+}
+```
+
+```json Respuesta 200 OK
+{
+  "id": 5,
+  "nombre": "Ruta Centro Ampliada",
+  "descripcion": "Zona centro de la ciudad incluyendo nuevas áreas",
+  "activo": true,
+  "updated_at": "2026-03-11T11:45:00.000000Z"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Desactivar Ruta
+
+<Warning>
+  Desactiva una ruta en lugar de eliminarla físicamente del sistema.
+</Warning>
+
+### Endpoint
+
+```
+DELETE /api/rutas/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID de la ruta a desactivar
+</ParamField>
+
+### Comportamiento
+
+- No elimina físicamente el registro
+- Establece el campo `activo` en `false`
+- La ruta no aparecerá en el listado de rutas activas
+- Los clientes asignados mantienen su relación histórica
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X DELETE "https://api.fabricamarie.com/api/rutas/5" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Ruta desactivada"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Asignar Clientes a Ruta
+
+<Note>
+  Asigna múltiples clientes a una ruta con orden específico para la secuencia de visitas.
+</Note>
+
+### Endpoint
+
+```
+POST /api/rutas/{rutaId}/asignar-clientes
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="rutaId" type="integer" required>
+  ID de la ruta a la que se asignarán los clientes
+</ParamField>
+
+### Parámetros del Body
+
+<ParamField body="clientes" type="array" required>
+  Lista de clientes a asignar con su orden
+  
+  <Expandable title="Estructura de cada elemento">
+    <ParamField body="clientes[].cliente_id" type="integer" required>
+      ID del cliente a asignar
+    </ParamField>
+    
+    <ParamField body="clientes[].orden" type="integer" required>
+      Orden de visita del cliente en la ruta (1, 2, 3...)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Comportamiento
+
+- Utiliza `sync()` de Laravel, por lo que reemplaza completamente la asignación anterior
+- Los clientes no incluidos en la solicitud serán removidos de la ruta
+- El campo `orden` determina la secuencia de visitas del vendedor
+- Se pueden asignar múltiples clientes en una sola operación
+
+<CodeGroup>
+
+```json Ejemplo de solicitud
+{
+  "clientes": [
+    {
+      "cliente_id": 45,
+      "orden": 1
+    },
+    {
+      "cliente_id": 46,
+      "orden": 2
+    },
+    {
+      "cliente_id": 47,
+      "orden": 3
+    },
+    {
+      "cliente_id": 50,
+      "orden": 4
+    }
+  ]
+}
+```
+
+```bash Solicitud completa
+curl -X POST "https://api.fabricamarie.com/api/rutas/5/asignar-clientes" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clientes": [
+      {"cliente_id": 45, "orden": 1},
+      {"cliente_id": 46, "orden": 2},
+      {"cliente_id": 47, "orden": 3}
+    ]
+  }'
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Clientes asignados a la ruta"
+}
+```
+
+```json Error 404 - Ruta no encontrada
+{
+  "message": "No query results for model [App\\Models\\Ruta] 5"
+}
+```
+
+</CodeGroup>
+
+## Casos de Uso
+
+### Organizar ruta de visitas diarias
+
+Asigna clientes en orden geográfico para optimizar el recorrido:
+
+```json
+{
+  "clientes": [
+    {"cliente_id": 45, "orden": 1},  // Primer cliente del día
+    {"cliente_id": 46, "orden": 2},  // Segundo cliente
+    {"cliente_id": 50, "orden": 3}   // Último cliente
+  ]
+}
+```
+
+### Reorganizar una ruta existente
+
+Cambiar completamente la asignación de clientes:
+
+```
+POST /api/rutas/5/asignar-clientes
+```
+
+### Consultar clientes de una ruta ordenados
+
+```
+GET /api/rutas/5
+```
+
+Los clientes se devolverán con su campo `pivot.orden` para mostrar la secuencia.
+
+## Relación con Tabla Pivot
+
+La asignación de clientes a rutas se almacena en una tabla pivot con la estructura:
+
+```
+cliente_ruta
+├── cliente_id
+├── ruta_id
+└── orden
+```
+
+El campo `orden` permite:
+- Secuenciar las visitas del vendedor
+- Optimizar rutas geográficas
+- Priorizar clientes importantes
+- Facilitar la planificación de entregas
+
+## Endpoints Relacionados
+
+- [Gestión de Clientes](/api/clients/manage-clients) - CRUD de clientes
+- [Ventas](/api/sales/create-sale) - Crear ventas por cliente

@@ -1,0 +1,575 @@
+---
+title: 'Productos'
+description: 'Gestión de productos en el inventario'
+---
+
+## Listar Productos
+
+<api method="GET" path="/api/inventario/productos" />
+
+Obtiene la lista de todos los productos activos en el sistema.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID único del producto
+</ResponseField>
+
+<ResponseField name="sku" type="string">
+  Código SKU único del producto (máx. 50 caracteres)
+</ResponseField>
+
+<ResponseField name="categoria" type="string">
+  Categoría del producto (máx. 100 caracteres)
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Nombre del producto (máx. 150 caracteres)
+</ResponseField>
+
+<ResponseField name="descripcion" type="string" nullable>
+  Descripción detallada del producto
+</ResponseField>
+
+<ResponseField name="presentacion" type="string" nullable>
+  Presentación o formato del producto (máx. 100 caracteres)
+</ResponseField>
+
+<ResponseField name="marca" type="string">
+  Marca del producto (máx. 100 caracteres)
+</ResponseField>
+
+<ResponseField name="unidad_medida" type="string">
+  Unidad de medida (ej: "kg", "unidad", "litro")
+</ResponseField>
+
+<ResponseField name="peso" type="number" nullable>
+  Peso del producto
+</ResponseField>
+
+<ResponseField name="precio_base" type="number">
+  Precio base de venta
+</ResponseField>
+
+<ResponseField name="costo" type="number">
+  Costo del producto
+</ResponseField>
+
+<ResponseField name="stock_minimo" type="integer">
+  Cantidad mínima en stock antes de generar alerta
+</ResponseField>
+
+<ResponseField name="activo" type="boolean">
+  Estado del producto (true = activo, false = inactivo)
+</ResponseField>
+
+<ResponseField name="created_at" type="timestamp">
+  Fecha de creación del producto
+</ResponseField>
+
+<ResponseField name="created_by" type="integer">
+  ID del usuario que creó el producto
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/productos" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/productos', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const productos = await response.json();
+```
+
+```php PHP
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/inventario/productos');
+$productos = $response->json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 1,
+    "sku": "PAN-001",
+    "categoria": "Panadería",
+    "nombre": "Pan Francés",
+    "descripcion": "Pan francés tradicional",
+    "presentacion": "Bolsa x 12 unidades",
+    "marca": "Fabrica Marie",
+    "unidad_medida": "unidad",
+    "peso": 0.8,
+    "precio_base": 15.50,
+    "costo": 8.00,
+    "stock_minimo": 100,
+    "activo": true,
+    "created_at": "2024-01-15 08:30:00",
+    "created_by": 1
+  }
+]
+```
+
+---
+
+## Listar Productos de Vendedor
+
+<api method="GET" path="/api/inventario/productos/vendedores/{vendedor_id}" />
+
+Obtiene los productos asignados a un vendedor específico que están actualmente en ruta.
+
+### Parámetros de Ruta
+
+<ParamField path="vendedor_id" type="integer" required>
+  ID del vendedor
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+Retorna un array de objetos `StockVendedor` con información del producto, vendedor y salida.
+
+<ResponseField name="id" type="integer">
+  ID del registro de stock del vendedor
+</ResponseField>
+
+<ResponseField name="producto" type="object">
+  Objeto con información completa del producto
+</ResponseField>
+
+<ResponseField name="vendedor" type="object">
+  Objeto con información del vendedor
+</ResponseField>
+
+<ResponseField name="cantidad" type="integer">
+  Cantidad de producto asignada al vendedor
+</ResponseField>
+
+<ResponseField name="salida" type="object">
+  Información de la salida asociada (estado EN_RUTA)
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/productos/vendedores/5" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/productos/vendedores/5', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const stockVendedor = await response.json();
+```
+</CodeGroup>
+
+---
+
+## Crear Producto
+
+<api method="POST" path="/api/inventario/productos" />
+
+Crea un nuevo producto en el sistema.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+<ParamField body="sku" type="string" required>
+  Código SKU único del producto (máx. 50 caracteres)
+</ParamField>
+
+<ParamField body="categoria" type="string" required>
+  Categoría del producto (máx. 100 caracteres)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Nombre del producto (máx. 150 caracteres)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Descripción detallada del producto (opcional)
+</ParamField>
+
+<ParamField body="presentacion" type="string">
+  Presentación del producto (máx. 100 caracteres, opcional)
+</ParamField>
+
+<ParamField body="marca" type="string" required>
+  Marca del producto (máx. 100 caracteres)
+</ParamField>
+
+<ParamField body="unidad_medida" type="string" required>
+  Unidad de medida (máx. 50 caracteres)
+</ParamField>
+
+<ParamField body="peso" type="number">
+  Peso del producto (mínimo 0, opcional)
+</ParamField>
+
+<ParamField body="precio_base" type="number" required>
+  Precio base de venta (mínimo 0)
+</ParamField>
+
+<ParamField body="costo" type="number" required>
+  Costo del producto (mínimo 0)
+</ParamField>
+
+<ParamField body="stock_minimo" type="integer" required>
+  Cantidad mínima en stock (mínimo 0)
+</ParamField>
+
+<ParamField body="activo" type="boolean" required>
+  Estado del producto (true/false)
+</ParamField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.fabricamarie.com/api/inventario/productos" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sku": "PAN-002",
+    "categoria": "Panadería",
+    "nombre": "Pan Integral",
+    "descripcion": "Pan integral con semillas",
+    "presentacion": "Bolsa x 10 unidades",
+    "marca": "Fabrica Marie",
+    "unidad_medida": "unidad",
+    "peso": 1.0,
+    "precio_base": 18.00,
+    "costo": 9.50,
+    "stock_minimo": 80,
+    "activo": true
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/productos', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    sku: 'PAN-002',
+    categoria: 'Panadería',
+    nombre: 'Pan Integral',
+    marca: 'Fabrica Marie',
+    unidad_medida: 'unidad',
+    precio_base: 18.00,
+    costo: 9.50,
+    stock_minimo: 80,
+    activo: true
+  })
+});
+const producto = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta (201 Created)
+
+```json
+{
+  "id": 2,
+  "sku": "PAN-002",
+  "categoria": "Panadería",
+  "nombre": "Pan Integral",
+  "descripcion": "Pan integral con semillas",
+  "presentacion": "Bolsa x 10 unidades",
+  "marca": "Fabrica Marie",
+  "unidad_medida": "unidad",
+  "peso": 1.0,
+  "precio_base": 18.00,
+  "costo": 9.50,
+  "stock_minimo": 80,
+  "activo": true,
+  "created_at": "2024-01-20 10:15:00",
+  "created_by": 1
+}
+```
+
+### Errores Comunes
+
+- **422 Unprocessable Entity**: Datos de validación incorrectos (ej: SKU duplicado)
+- **401 Unauthorized**: Token inválido o ausente
+- **403 Forbidden**: Usuario sin permisos suficientes
+
+---
+
+## Obtener Producto
+
+<api method="GET" path="/api/inventario/productos/{id}" />
+
+Obtiene información detallada de un producto específico, incluyendo su stock actual.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del producto
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+Retorna el producto con su relación `stock` incluida.
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/productos/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/productos/1', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const producto = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "id": 1,
+  "sku": "PAN-001",
+  "categoria": "Panadería",
+  "nombre": "Pan Francés",
+  "descripcion": "Pan francés tradicional",
+  "presentacion": "Bolsa x 12 unidades",
+  "marca": "Fabrica Marie",
+  "unidad_medida": "unidad",
+  "peso": 0.8,
+  "precio_base": 15.50,
+  "costo": 8.00,
+  "stock_minimo": 100,
+  "activo": true,
+  "created_at": "2024-01-15 08:30:00",
+  "created_by": 1,
+  "stock": [
+    {
+      "id": 1,
+      "producto_id": 1,
+      "ruma_id": 5,
+      "cantidad": 150,
+      "fecha_ultimo_mov": "2024-01-20 14:30:00"
+    },
+    {
+      "id": 2,
+      "producto_id": 1,
+      "ruma_id": 8,
+      "cantidad": 200,
+      "fecha_ultimo_mov": "2024-01-20 09:15:00"
+    }
+  ]
+}
+```
+
+---
+
+## Actualizar Producto
+
+<api method="PUT" path="/api/inventario/productos/{id}" />
+
+Actualiza la información de un producto existente.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del producto a actualizar
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Parámetros del Body
+
+Todos los campos del producto son opcionales en la actualización. Solo se actualizarán los campos enviados.
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.fabricamarie.com/api/inventario/productos/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "precio_base": 16.50,
+    "stock_minimo": 120
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/productos/1', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    precio_base: 16.50,
+    stock_minimo: 120
+  })
+});
+const producto = await response.json();
+```
+</CodeGroup>
+
+---
+
+## Alertas de Stock Mínimo
+
+<api method="GET" path="/api/inventario/alertas/stock-minimo" />
+
+Obtiene la lista de productos que tienen stock actual menor o igual al stock mínimo configurado.
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID del producto
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Nombre del producto
+</ResponseField>
+
+<ResponseField name="stock_minimo" type="integer">
+  Stock mínimo configurado
+</ResponseField>
+
+<ResponseField name="stock_actual" type="integer">
+  Stock actual sumado de todas las rumas
+</ResponseField>
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.fabricamarie.com/api/inventario/alertas/stock-minimo" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/alertas/stock-minimo', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const alertas = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+[
+  {
+    "id": 5,
+    "nombre": "Pan Francés Especial",
+    "stock_minimo": 100,
+    "stock_actual": 85
+  },
+  {
+    "id": 12,
+    "nombre": "Torta de Chocolate",
+    "stock_minimo": 50,
+    "stock_actual": 45
+  }
+]
+```
+
+---
+
+## Eliminar Producto (Desactivar)
+
+<api method="DELETE" path="/api/inventario/productos/{id}" />
+
+Desactiva un producto. No elimina el registro sino que marca el campo `activo` como `false`.
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del producto a desactivar
+</ParamField>
+
+### Permisos Requeridos
+- Roles: `ADMIN`, `ALMACENERO`, `VENDEDOR`, `GERENTE`
+- Autenticación: Sanctum (Bearer Token)
+
+### Ejemplo de Solicitud
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE "https://api.fabricamarie.com/api/inventario/productos/5" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/inventario/productos/5', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/json'
+  }
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+### Ejemplo de Respuesta
+
+```json
+{
+  "message": "Producto desactivado"
+}
+```

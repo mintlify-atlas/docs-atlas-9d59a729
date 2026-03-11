@@ -1,0 +1,365 @@
+---
+title: 'Usuario actual (Me)'
+api: 'GET /api/me'
+description: 'Obtiene información del usuario autenticado actualmente'
+---
+
+## Descripción
+
+Retorna la información completa del usuario actualmente autenticado, incluyendo sus roles y permisos. Este endpoint es útil para:
+
+- Verificar si el token sigue siendo válido
+- Obtener información actualizada del usuario
+- Validar permisos antes de mostrar funcionalidades
+- Refrescar el estado de la sesión
+
+<Warning>
+**Requiere autenticación:** Este endpoint requiere un token válido de Sanctum en el header `Authorization`.
+</Warning>
+
+## Autenticación
+
+```bash
+Authorization: Bearer {token}
+```
+
+Donde `{token}` es el token obtenido del endpoint `/api/login`.
+
+## Parámetros
+
+Este endpoint no requiere parámetros.
+
+## Respuesta exitosa
+
+<ResponseField name="user" type="object">
+  Información completa del usuario autenticado.
+  
+  <Expandable title="Propiedades">
+    <ResponseField name="id" type="integer">
+      Identificador único del usuario.
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Nombre completo del usuario.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Correo electrónico del usuario.
+    </ResponseField>
+    
+    <ResponseField name="activo" type="boolean">
+      Estado activo/inactivo del usuario.
+    </ResponseField>
+    
+    <ResponseField name="ultimo_login" type="datetime">
+      Fecha y hora del último inicio de sesión.
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="datetime">
+      Fecha de creación del registro.
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="datetime">
+      Fecha de última actualización.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="roles" type="array">
+  Lista de roles asignados al usuario.
+  
+  <Expandable title="Elementos del array">
+    <ResponseField name="id" type="integer">
+      Identificador del rol.
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Nombre del rol.
+      
+      **Valores posibles:** ADMIN, GERENTE, SUPERVISOR, VENDEDOR, CAJERO, ALMACENERO, RRHH, FIDELIZACION, MANTENIMIENTO
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Descripción del rol.
+    </ResponseField>
+    
+    <ResponseField name="activo" type="boolean">
+      Estado del rol.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="permisos" type="array">
+  Lista de permisos específicos del usuario (derivados de sus roles).
+  
+  <Expandable title="Elementos del array">
+    <ResponseField name="id" type="integer">
+      Identificador del permiso.
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Nombre técnico del permiso (ej: ver_roles, crear_rol, editar_venta).
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Descripción legible del permiso.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errores
+
+### Códigos de error comunes
+
+<ResponseExample>
+```json 401 - No autenticado
+{
+  "message": "Unauthenticated."
+}
+```
+</ResponseExample>
+
+<Note>
+El código de error 401 se retorna cuando:
+- No se proporciona el header `Authorization`
+- El token es inválido o ha expirado
+- El token fue eliminado (ej: después de un logout)
+</Note>
+
+## Ejemplos de código
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.fabricamarie.com/api/me \
+  -H "Authorization: Bearer 1|a8sdf7a98sd7f98a7sd98f7a98sd7f98a7sd98f7a98sd7f" \
+  -H "Accept: application/json"
+```
+
+```javascript JavaScript (Fetch)
+const token = localStorage.getItem('auth_token');
+
+const response = await fetch('https://api.fabricamarie.com/api/me', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+
+if (response.ok) {
+  console.log('Usuario:', data.user);
+  console.log('Roles:', data.roles);
+  console.log('Permisos:', data.permisos);
+  
+  // Verificar si tiene un permiso específico
+  const puedeCrearRol = data.permisos.some(
+    permiso => permiso.nombre === 'crear_rol'
+  );
+  
+  // Verificar si tiene un rol específico
+  const esAdmin = data.roles.some(
+    rol => rol.nombre === 'ADMIN'
+  );
+  
+  console.log('Es admin:', esAdmin);
+  console.log('Puede crear rol:', puedeCrearRol);
+} else {
+  console.error('Token inválido o expirado');
+  // Redirigir al login
+  window.location.href = '/login';
+}
+```
+
+```php PHP
+<?php
+
+use Illuminate\Support\Facades\Http;
+
+$token = 'tu_token_aqui';
+
+$response = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/me');
+
+if ($response->successful()) {
+    $data = $response->json();
+    $user = $data['user'];
+    $roles = $data['roles'];
+    $permisos = $data['permisos'];
+    
+    echo "Nombre: " . $user['nombre'];
+    echo "Email: " . $user['email'];
+    
+    // Verificar permisos
+    $permisosNombres = array_column($permisos, 'nombre');
+    if (in_array('ver_roles', $permisosNombres)) {
+        echo "El usuario puede ver roles";
+    }
+} else {
+    echo "Error: Token inválido";
+}
+```
+
+```python Python
+import requests
+
+token = 'tu_token_aqui'
+url = 'https://api.fabricamarie.com/api/me'
+headers = {
+    'Authorization': f'Bearer {token}',
+    'Accept': 'application/json'
+}
+
+response = requests.get(url, headers=headers)
+
+if response.status_code == 200:
+    data = response.json()
+    user = data['user']
+    roles = data['roles']
+    permisos = data['permisos']
+    
+    print(f"Usuario: {user['nombre']}")
+    print(f"Email: {user['email']}")
+    print(f"Roles: {[rol['nombre'] for rol in roles]}")
+    
+    # Verificar si tiene un permiso
+    permisos_nombres = [p['nombre'] for p in permisos]
+    puede_crear_rol = 'crear_rol' in permisos_nombres
+    print(f"Puede crear rol: {puede_crear_rol}")
+else:
+    print(f"Error: {response.status_code}")
+```
+</CodeGroup>
+
+## Respuesta de ejemplo
+
+```json 200 - Información del usuario
+{
+  "user": {
+    "id": 5,
+    "nombre": "María González",
+    "email": "maria.gonzalez@fabricamarie.com",
+    "activo": 1,
+    "ultimo_login": "2026-03-11T09:15:30.000000Z",
+    "created_at": "2025-06-20T14:30:00.000000Z",
+    "updated_at": "2026-03-11T09:15:30.000000Z"
+  },
+  "roles": [
+    {
+      "id": 3,
+      "nombre": "VENDEDOR",
+      "descripcion": "Vendedor de campo",
+      "activo": 1
+    },
+    {
+      "id": 5,
+      "nombre": "CAJERO",
+      "descripcion": "Cajero del sistema",
+      "activo": 1
+    }
+  ],
+  "permisos": [
+    {
+      "id": 15,
+      "nombre": "crear_venta",
+      "descripcion": "Crear nuevas ventas"
+    },
+    {
+      "id": 16,
+      "nombre": "ver_ventas",
+      "descripcion": "Ver listado de ventas"
+    },
+    {
+      "id": 20,
+      "nombre": "abrir_caja",
+      "descripcion": "Abrir caja del día"
+    },
+    {
+      "id": 21,
+      "nombre": "cerrar_caja",
+      "descripcion": "Cerrar caja del día"
+    }
+  ]
+}
+```
+
+## Casos de uso
+
+### 1. Verificar validez del token
+
+```javascript
+async function verificarSesion() {
+  try {
+    const response = await fetch('/api/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      // Token inválido, redirigir al login
+      window.location.href = '/login';
+    }
+  } catch (error) {
+    console.error('Error verificando sesión:', error);
+  }
+}
+```
+
+### 2. Validar permisos para funcionalidades
+
+```javascript
+const data = await fetch('/api/me').then(r => r.json());
+
+// Mostrar botón solo si tiene el permiso
+const puedeCrearVenta = data.permisos.some(
+  p => p.nombre === 'crear_venta'
+);
+
+if (puedeCrearVenta) {
+  mostrarBotonNuevaVenta();
+}
+```
+
+### 3. Refrescar información del usuario
+
+```javascript
+// Después de que un admin actualice los permisos del usuario
+async function refrescarPermisos() {
+  const response = await fetch('/api/me', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  
+  const data = await response.json();
+  actualizarInterfazConNuevosPermisos(data.permisos);
+}
+```
+
+## Notas adicionales
+
+<Info>
+**Usos recomendados:**
+
+- Llamar este endpoint al cargar la aplicación para validar la sesión
+- Utilizar la información de roles/permisos para mostrar/ocultar funcionalidades en el frontend
+- Implementar un sistema de "refresh" de permisos sin requerir nuevo login
+- Validar que el usuario sigue activo (`activo: 1`)
+</Info>
+
+<Tip>
+**Optimización:**
+
+Puedes cachear la respuesta de este endpoint durante un tiempo razonable (ej: 5-10 minutos) para evitar múltiples llamadas innecesarias. Sin embargo, asegúrate de refrescar la información cuando:
+
+- El usuario realiza una acción que podría cambiar sus permisos
+- Después de un período de inactividad
+- Al navegar entre secciones críticas que requieren verificación de permisos
+</Tip>
+
+<Warning>
+**Seguridad:**
+
+Nunca confíes únicamente en la validación del frontend. Aunque uses este endpoint para mostrar/ocultar elementos de la UI, el backend siempre debe validar los permisos en cada petición a endpoints protegidos.
+</Warning>

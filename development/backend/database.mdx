@@ -1,0 +1,780 @@
+---
+title: "Base de Datos y Modelos"
+description: "Estructura de la base de datos, modelos Eloquent y relaciones en Fabrica Marie ERP"
+icon: "database"
+---
+
+El sistema Fabrica Marie ERP utiliza MySQL como base de datos y Eloquent ORM de Laravel para la interacción con los datos.
+
+## Modelos Principales
+
+El sistema cuenta con múltiples modelos que representan las entidades del negocio:
+
+### Usuario
+
+Modelo que representa a los usuarios del sistema con autenticación.
+
+```php app/Models/Usuario.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
+
+class Usuario extends Authenticatable
+{
+    use HasApiTokens, Notifiable;
+
+    protected $table = 'usuarios';
+
+    protected $fillable = [
+        'username',
+        'email',
+        'password_hash',
+        'nombre',
+        'activo'
+    ];
+
+    protected $hidden = ['password_hash'];
+
+    // Laravel espera "password"
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
+
+    // Relaciones
+    public function roles()
+    {
+        return $this->belongsToMany(Rol::class, 'usuario_rol');
+    }
+
+    public function permisos()
+    {
+        return $this->roles()
+            ->join('rol_permiso', 'roles.id', '=', 'rol_permiso.rol_id')
+            ->join('permisos', 'rol_permiso.permiso_id', '=', 'permisos.id')
+            ->select('permisos.*')
+            ->distinct();
+    }
+}
+```
+
+<Info>
+**Nota importante:** Este modelo usa `password_hash` en lugar del campo estándar `password` de Laravel. El método `getAuthPassword()` permite que Laravel use el campo correcto.
+</Info>
+
+**Relaciones:**
+- `belongsToMany` con `Rol` a través de tabla pivote `usuario_rol`
+- `hasOne` con `InformacionSalarialEmp`
+- `permisos()` - Query complejo que obtiene todos los permisos del usuario a través de sus roles
+
+### Producto
+
+Gestión del catálogo de productos.
+
+```php app/Models/Producto.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Producto extends Model
+{
+    protected $table = 'productos';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'sku',
+        'categoria',
+        'nombre',
+        'descripcion',
+        'presentacion',
+        'marca',
+        'unidad_medida',
+        'peso',
+        'precio_base',
+        'costo',
+        'stock_minimo',
+        'activo',
+        'created_at',
+        'created_by'
+    ];
+
+    // Relaciones
+    public function stock()
+    {
+        return $this->hasMany(StockActual::class, 'producto_id');
+    }
+
+    public function stockVendedor()
+    {
+        return $this->hasMany(StockVendedor::class, 'producto_id');
+    }
+
+    public function movimientos()
+    {
+        return $this->hasMany(MovimientoStock::class, 'producto_id');
+    }
+}
+```
+
+**Características:**
+- `timestamps = false` - No usa timestamps automáticos de Laravel
+- Gestiona tanto stock en almacén como stock de vendedores
+- Tracking completo de movimientos de inventario
+
+### Venta
+
+Registro de transacciones de venta.
+
+```php app/Models/Venta.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Venta extends Model
+{
+    protected $table = 'ventas';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'codigo',
+        'vendedor_id',
+        'cliente_id',
+        'fecha',
+        'total_neto',
+        'tipo_pago',
+        'metodo_pago_detalle',
+        'adelanto',
+        'descuento',
+        'estado'
+    ];
+
+    public function vendedor()
+    {
+        return $this->belongsTo(Vendedor::class);
+    }
+
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(VentaItem::class);
+    }
+
+    public function cuenta()
+    {
+        return $this->hasOne(CuentaPorCobrar::class);
+    }
+
+    public function movimientosStock()
+    {
+        return $this->hasMany(MovimientoStock::class, 'referencia_id')
+            ->where('referencia_tipo', 'VENTA');
+    }
+
+    public function movimientosCaja()
+    {
+        return $this->hasMany(MovimientoCaja::class, 'referencia_id')
+            ->where('referencia_tipo', 'VENTA');
+    }
+}
+```
+
+**Relaciones importantes:**
+- Una venta pertenece a un `Vendedor` y un `Cliente`
+- Tiene múltiples `VentaItem` (detalles de productos vendidos)
+- Genera movimientos automáticos de stock y caja
+- Puede generar una cuenta por cobrar si es a crédito
+
+### Caja
+
+Control de caja diaria.
+
+```php app/Models/Caja.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Caja extends Model
+{
+    protected $table = 'cajas';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'usuario_id',
+        'fecha',
+        'saldo_inicial',
+        'saldo_actual',
+        'total_ingresos',
+        'total_egresos',
+        'estado',
+        'cerrado_at',
+        'cerrado_by'
+    ];
+
+    public function movimientos()
+    {
+        return $this->hasMany(MovimientoCaja::class);
+    }
+
+    public function usuario()
+    {
+        return $this->belongsTo(Usuario::class);
+    }
+
+    public function usuarioCerrado()
+    {
+        return $this->belongsTo(Usuario::class, 'cerrado_by');
+    }
+
+    public function cierreCaja()
+    {
+        return $this->hasOne(CierreCaja::class);
+    }
+}
+```
+
+**Estados de caja:**
+- `ABIERTA` - Caja activa, acepta operaciones
+- `CERRADA` - Caja cerrada, no permite operaciones
+
+### Cliente
+
+Información de clientes y su configuración de crédito.
+
+```php app/Models/Cliente.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Cliente extends Model
+{
+    protected $table = 'clientes';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'codigo_cliente',
+        'razon_social',
+        'tipo_cliente',
+        'direccion',
+        'telefono',
+        'ruta_id',
+        'condicion_pago',
+        'limite_credito',
+        'dias_credito',
+        'deuda_actual',
+        'activo',
+        'status'
+    ];
+
+    public function ruta()
+    {
+        return $this->belongsTo(Ruta::class, 'ruta_id');
+    }
+
+    public function rutas()
+    {
+        return $this->belongsToMany(
+            Ruta::class,
+            'ruta_cliente',
+            'cliente_id',
+            'ruta_id'
+        )->withPivot('orden');
+    }
+}
+```
+
+**Características:**
+- Un cliente puede estar asignado a múltiples rutas
+- Gestión de crédito con límite y días de crédito
+- Tracking de deuda actual
+
+### Ruta
+
+Rutas de distribución y visitas.
+
+```php app/Models/Ruta.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Ruta extends Model
+{
+    protected $table = 'rutas';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'nombre',
+        'zona',
+        'descripcion',
+        'frecuencia',
+        'vendedor_id',
+        'clientes_estimados',
+        'activo'
+    ];
+
+    public function vendedor()
+    {
+        return $this->hasOne(Vendedor::class);
+    }
+
+    public function clientes()
+    {
+        return $this->belongsToMany(
+            Cliente::class,
+            'ruta_cliente',
+            'ruta_id',
+            'cliente_id'
+        )->withPivot('orden')
+         ->orderBy('ruta_cliente.orden');
+    }
+}
+```
+
+**Características:**
+- Los clientes se ordenan por el campo `orden` en la tabla pivote
+- Una ruta pertenece a un vendedor
+
+### Vehículo
+
+Gestión de vehículos de la flota.
+
+```php app/Models/Vehiculo.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Vehiculo extends Model
+{
+    protected $table = 'vehiculos';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'placa',
+        'tipo',
+        'marca',
+        'modelo',
+        'chofer',
+        'anio',
+        'estado',
+        'activo',
+    ];
+
+    public function gpsPoints()
+    {
+        return $this->hasMany(GpsPoint::class, 'vehiculo_id');
+    }
+
+    public function mantenimientos()
+    {
+        return $this->hasMany(Mantenimiento::class, 'vehiculo_id');
+    }
+
+    public function vendedores()
+    {
+        return $this->belongsToMany(
+            Vendedor::class,
+            'vehiculo_vendedor',
+            'vehiculo_id',
+            'vendedor_id'
+        );
+    }
+}
+```
+
+## Otros Modelos Importantes
+
+<AccordionGroup>
+  <Accordion title="Rol - Sistema de roles">
+    ```php
+    class Rol extends Model
+    {
+        protected $table = 'roles';
+        
+        public function usuarios()
+        {
+            return $this->belongsToMany(Usuario::class, 'usuario_rol');
+        }
+        
+        public function permisos()
+        {
+            return $this->belongsToMany(Permiso::class, 'rol_permiso');
+        }
+    }
+    ```
+    
+    **Roles del sistema:**
+    - ADMIN
+    - VENDEDOR
+    - CAJERO
+    - ALMACENERO
+    - GERENTE
+    - SUPERVISOR
+    - MANTENIMIENTO
+    - FIDELIZACION
+  </Accordion>
+
+  <Accordion title="Vendedor - Información de vendedores">
+    ```php
+    class Vendedor extends Model
+    {
+        protected $table = 'vendedores';
+        
+        public function usuario()
+        {
+            return $this->belongsTo(Usuario::class);
+        }
+        
+        public function ventas()
+        {
+            return $this->hasMany(Venta::class);
+        }
+        
+        public function stockVendedor()
+        {
+            return $this->hasMany(StockVendedor::class);
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="MovimientoStock - Tracking de inventario">
+    Registra todos los movimientos de inventario:
+    - ENTRADA
+    - SALIDA
+    - DEVOLUCION
+    - AJUSTE
+    - VENTA
+    - TRASLADO
+  </Accordion>
+
+  <Accordion title="CuentaPorCobrar - Gestión de créditos">
+    Gestiona las ventas a crédito y sus pagos:
+    - Saldo pendiente
+    - Fecha de vencimiento
+    - Abonos realizados
+    - Estado de la cuenta
+  </Accordion>
+</AccordionGroup>
+
+## Estructura de Migraciones
+
+Las migraciones se encuentran en `database/migrations/` y siguen la convención de Laravel:
+
+```
+database/migrations/
+├── 0001_01_01_000000_create_users_table.php
+├── 0001_01_01_000001_create_cache_table.php
+├── 0001_01_01_000002_create_jobs_table.php
+└── 2026_02_XX_XXXXXX_create_personal_access_tokens_table.php
+```
+
+## Crear Nuevas Migraciones
+
+<Steps>
+  <Step title="Generar el archivo de migración">
+    ```bash
+    php artisan make:migration create_tabla_ejemplo_table
+    ```
+    
+    Para agregar columnas a una tabla existente:
+    ```bash
+    php artisan make:migration add_columna_to_tabla_table
+    ```
+  </Step>
+
+  <Step title="Definir la estructura de la tabla">
+    ```php database/migrations/YYYY_MM_DD_XXXXXX_create_tabla_ejemplo_table.php
+    <?php
+    
+    use Illuminate\Database\Migrations\Migration;
+    use Illuminate\Database\Schema\Blueprint;
+    use Illuminate\Support\Facades\Schema;
+    
+    return new class extends Migration
+    {
+        public function up(): void
+        {
+            Schema::create('tabla_ejemplo', function (Blueprint $table) {
+                $table->id();
+                $table->string('nombre');
+                $table->text('descripcion')->nullable();
+                $table->decimal('precio', 10, 2);
+                $table->boolean('activo')->default(true);
+                $table->foreignId('categoria_id')
+                      ->constrained('categorias')
+                      ->onDelete('cascade');
+                $table->timestamps();
+            });
+        }
+    
+        public function down(): void
+        {
+            Schema::dropIfExists('tabla_ejemplo');
+        }
+    };
+    ```
+  </Step>
+
+  <Step title="Ejecutar la migración">
+    ```bash
+    php artisan migrate
+    ```
+    
+    Para revertir la última migración:
+    ```bash
+    php artisan migrate:rollback
+    ```
+    
+    Para ver el estado de las migraciones:
+    ```bash
+    php artisan migrate:status
+    ```
+  </Step>
+</Steps>
+
+## Tipos de Columnas Comunes
+
+<CodeGroup>
+```php IDs y Foreign Keys
+$table->id(); // BIGINT UNSIGNED AUTO_INCREMENT
+$table->foreignId('user_id')->constrained();
+$table->foreignId('producto_id')
+      ->constrained('productos')
+      ->onDelete('cascade');
+```
+
+```php Strings y Texto
+$table->string('nombre', 100); // VARCHAR(100)
+$table->text('descripcion'); // TEXT
+$table->char('codigo', 10); // CHAR(10)
+```
+
+```php Números
+$table->integer('cantidad');
+$table->decimal('precio', 10, 2); // 10 dígitos, 2 decimales
+$table->float('peso', 8, 2);
+$table->boolean('activo')->default(true);
+```
+
+```php Fechas y Tiempo
+$table->date('fecha');
+$table->dateTime('fecha_hora');
+$table->timestamp('created_at');
+$table->timestamps(); // created_at y updated_at
+```
+
+```php Enumeraciones
+$table->enum('estado', ['PENDIENTE', 'PROCESADO', 'CANCELADO']);
+```
+</CodeGroup>
+
+## Relaciones entre Modelos
+
+### One to Many (Uno a Muchos)
+
+```php
+// Un cliente tiene muchas ventas
+class Cliente extends Model
+{
+    public function ventas()
+    {
+        return $this->hasMany(Venta::class);
+    }
+}
+
+class Venta extends Model
+{
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+}
+```
+
+### Many to Many (Muchos a Muchos)
+
+```php
+// Un usuario puede tener múltiples roles
+// Un rol puede ser asignado a múltiples usuarios
+class Usuario extends Model
+{
+    public function roles()
+    {
+        return $this->belongsToMany(
+            Rol::class,
+            'usuario_rol',      // tabla pivote
+            'usuario_id',       // FK en tabla pivote
+            'rol_id'            // FK relacionada
+        );
+    }
+}
+
+class Rol extends Model
+{
+    public function usuarios()
+    {
+        return $this->belongsToMany(Usuario::class, 'usuario_rol');
+    }
+}
+```
+
+### Many to Many con Datos Adicionales
+
+```php
+// Clientes en rutas con orden de visita
+class Ruta extends Model
+{
+    public function clientes()
+    {
+        return $this->belongsToMany(
+            Cliente::class,
+            'ruta_cliente'
+        )->withPivot('orden') // Campo adicional en tabla pivote
+         ->orderBy('ruta_cliente.orden');
+    }
+}
+
+// Uso:
+$ruta = Ruta::with('clientes')->find(1);
+foreach ($ruta->clientes as $cliente) {
+    echo $cliente->pivot->orden; // Acceso al campo de la tabla pivote
+}
+```
+
+## Query Scopes
+
+Puedes crear scopes reutilizables en tus modelos:
+
+```php app/Models/Producto.php
+class Producto extends Model
+{
+    // Scope local
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
+    }
+    
+    public function scopeConStockBajo($query)
+    {
+        return $query->whereColumn('stock_actual', '<=', 'stock_minimo');
+    }
+}
+
+// Uso:
+$productosActivos = Producto::activo()->get();
+$alertas = Producto::activo()->conStockBajo()->get();
+```
+
+## Consultas Comunes
+
+<CodeGroup>
+```php Eager Loading (Optimización)
+// Evita el problema N+1
+$ventas = Venta::with(['cliente', 'vendedor', 'items.producto'])->get();
+```
+
+```php Agregaciones
+// Contar ventas por vendedor
+$estadisticas = Venta::selectRaw('vendedor_id, COUNT(*) as total, SUM(total_neto) as monto')
+    ->groupBy('vendedor_id')
+    ->get();
+```
+
+```php Filtros Complejos
+// Ventas del mes con cliente y productos
+$ventas = Venta::with(['cliente', 'items.producto'])
+    ->whereMonth('fecha', now()->month)
+    ->whereYear('fecha', now()->year)
+    ->where('estado', 'CONFIRMADA')
+    ->orderBy('fecha', 'desc')
+    ->get();
+```
+
+```php Transacciones
+DB::transaction(function () {
+    $venta = Venta::create([...]);
+    
+    foreach ($items as $item) {
+        VentaItem::create([...]);
+        // Actualizar stock
+    }
+    
+    MovimientoCaja::create([...]);
+});
+```
+</CodeGroup>
+
+## Seeders
+
+Los seeders permiten poblar la base de datos con datos iniciales:
+
+```php database/seeders/UsuarioAdminSeeder.php
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\Usuario;
+use Illuminate\Support\Facades\Hash;
+
+class UsuarioAdminSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $admin = Usuario::create([
+            'username' => 'admin',
+            'email' => 'admin@fabricamarie.com',
+            'password_hash' => Hash::make('admin123'),
+            'nombre' => 'Administrador',
+            'activo' => true
+        ]);
+        
+        // Asignar rol de admin
+        $admin->roles()->attach(1); // ID del rol ADMIN
+    }
+}
+```
+
+<Info>
+El orden de ejecución de seeders es importante. El `DatabaseSeeder` los ejecuta en el orden correcto:
+1. PermisoSeeder
+2. RolSeeder
+3. RolPermisoSeeder
+4. UsuarioAdminSeeder
+</Info>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Middleware" icon="shield" href="./middleware">
+    Aprende sobre autenticación y autorización
+  </Card>
+  <Card title="Testing" icon="flask" href="./testing">
+    Escribe tests para tus modelos y relaciones
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/auth/login">
+    Explora los endpoints disponibles
+  </Card>
+  <Card title="Setup" icon="wrench" href="./setup">
+    Volver a la guía de configuración
+  </Card>
+</CardGroup>

@@ -1,0 +1,498 @@
+---
+title: 'Salidas de Caja y Viáticos'
+api: 'GET /api/salidas-caja'
+---
+
+## Listar Todas las Salidas
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/salidas-caja \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/salidas-caja', {
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const salidas = await response.json();
+```
+
+```php PHP
+$salidas = Http::withToken($token)
+    ->get('https://api.fabricamarie.com/api/salidas-caja')
+    ->json();
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID de la salida
+</ResponseField>
+
+<ResponseField name="caja" type="object">
+  Información de la caja asociada
+</ResponseField>
+
+<ResponseField name="usuario" type="object">
+  Usuario que registró la salida
+</ResponseField>
+
+<ResponseField name="usuario_liquido" type="object">
+  Usuario que liquidó la salida (si aplica)
+</ResponseField>
+
+<ResponseField name="fecha" type="string">
+  Fecha de la salida
+</ResponseField>
+
+<ResponseField name="destinatario" type="string">
+  Persona o entidad destinataria
+</ResponseField>
+
+<ResponseField name="motivo" type="string">
+  Motivo de la salida
+</ResponseField>
+
+<ResponseField name="entregado" type="number">
+  Monto entregado
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado: PENDIENTE, ENTREGADO, o LIQUIDADO
+</ResponseField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+[
+  {
+    "id": 45,
+    "caja_id": 123,
+    "fecha": "2024-03-15",
+    "destinatario": "Pedro Martínez",
+    "motivo": "Compra de insumos",
+    "entregado": 500.00,
+    "usado": null,
+    "vuelto": null,
+    "estado": "PENDIENTE",
+    "observaciones": "Compra urgente",
+    "registrado_by": 10,
+    "liquidado_by": null,
+    "caja": {
+      "id": 123,
+      "fecha": "2024-03-15"
+    },
+    "usuario": {
+      "id": 10,
+      "nombre": "Ana García"
+    },
+    "usuario_liquido": null
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Crear Salida de Caja
+
+<api>POST /api/salidas-caja</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/salidas-caja \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "destinatario": "Pedro Martínez",
+    "motivo": "Compra de insumos",
+    "entregado": 500.00,
+    "observaciones": "Compra urgente"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/salidas-caja', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    destinatario: 'Pedro Martínez',
+    motivo: 'Compra de insumos',
+    entregado: 500.00,
+    observaciones: 'Compra urgente'
+  })
+});
+
+const salida = await response.json();
+```
+
+```php PHP
+$salida = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/salidas-caja', [
+        'destinatario' => 'Pedro Martínez',
+        'motivo' => 'Compra de insumos',
+        'entregado' => 500.00,
+        'observaciones' => 'Compra urgente'
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField body="destinatario" type="string" required>
+  Nombre del destinatario (máximo 255 caracteres)
+</ParamField>
+
+<ParamField body="motivo" type="string" required>
+  Motivo de la salida
+</ParamField>
+
+<ParamField body="entregado" type="number" required>
+  Monto a entregar (debe ser mayor a 0)
+</ParamField>
+
+<ParamField body="observaciones" type="string">
+  Observaciones adicionales (máximo 255 caracteres)
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Salida registrada correctamente",
+  "data": {
+    "id": 45,
+    "caja_id": 123,
+    "fecha": "2024-03-15T10:30:00.000000Z",
+    "destinatario": "Pedro Martínez",
+    "motivo": "Compra de insumos",
+    "entregado": 500.00,
+    "estado": "PENDIENTE",
+    "observaciones": "Compra urgente",
+    "registrado_by": 10
+  }
+}
+```
+
+```json Error: Sin Caja Abierta
+{
+  "message": "No existe una caja abierta"
+}
+```
+</ResponseExample>
+
+---
+
+## Entregar Salida
+
+<api>POST /api/salidas-caja/{id}/entregar</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/salidas-caja/45/entregar \
+  -H "Authorization: Bearer {token}"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/salidas-caja/45/entregar', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token
+  }
+});
+
+const result = await response.json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID de la salida a entregar
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Salida entregada correctamente",
+  "data": {
+    "id": 45,
+    "estado": "ENTREGADO"
+  }
+}
+```
+</ResponseExample>
+
+<Note>
+Al entregar una salida, se registra automáticamente un movimiento de EGRESO en la caja con categoría "SALIDA".
+</Note>
+
+---
+
+## Liquidar Salida
+
+<api>POST /api/salidas-caja/{id}/liquidar</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/salidas-caja/45/liquidar \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "usado": 450.00,
+    "vuelto": 50.00,
+    "comprobante": "FACT-001234"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.fabricamarie.com/api/salidas-caja/45/liquidar', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    usado: 450.00,
+    vuelto: 50.00,
+    comprobante: 'FACT-001234'
+  })
+});
+
+const result = await response.json();
+```
+
+```php PHP
+$result = Http::withToken($token)
+    ->post('https://api.fabricamarie.com/api/salidas-caja/45/liquidar', [
+        'usado' => 450.00,
+        'vuelto' => 50.00,
+        'comprobante' => 'FACT-001234'
+    ])
+    ->json();
+```
+</RequestExample>
+
+<ParamField path="id" type="integer" required>
+  ID de la salida a liquidar
+</ParamField>
+
+<ParamField body="usado" type="number" required>
+  Monto usado (debe ser mayor o igual a 0)
+</ParamField>
+
+<ParamField body="vuelto" type="number" required>
+  Monto del vuelto (debe ser mayor o igual a 0)
+</ParamField>
+
+<ParamField body="comprobante" type="string" required>
+  Número de comprobante (máximo 50 caracteres)
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Salida liquidada correctamente",
+  "data": {
+    "id": 45,
+    "usado": 450.00,
+    "vuelto": 50.00,
+    "estado": "LIQUIDADO",
+    "comprobante": "FACT-001234",
+    "liquidado_by": 10
+  }
+}
+```
+
+```json Error: Ya Liquidado
+{
+  "message": "Esta salida ya fue liquidada"
+}
+```
+
+```json Error: Suma Incorrecta
+{
+  "message": "La suma de usado y vuelto debe ser igual al monto entregado"
+}
+```
+</ResponseExample>
+
+<Note>
+Si hay vuelto, se registra automáticamente un movimiento de INGRESO en la caja con categoría "VUELTO".
+</Note>
+
+---
+
+## Viáticos
+
+### Listar Viáticos
+
+<api>GET /api/viaticos</api>
+
+<RequestExample>
+```bash cURL
+curl https://api.fabricamarie.com/api/viaticos \
+  -H "Authorization: Bearer {token}"
+```
+</RequestExample>
+
+<ResponseField name="id" type="integer">
+  ID del viático
+</ResponseField>
+
+<ResponseField name="vendedor" type="object">
+  Información del vendedor
+</ResponseField>
+
+<ResponseField name="ruta" type="object">
+  Información de la ruta
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Tipo: inicial o viaje
+</ResponseField>
+
+<ResponseField name="fecha" type="string">
+  Fecha del viático
+</ResponseField>
+
+<ResponseField name="monto" type="number">
+  Monto del viático
+</ResponseField>
+
+<ResponseField name="zona" type="string">
+  Zona de destino
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Estado: PENDIENTE, APROBADO, o LIQUIDADO
+</ResponseField>
+
+---
+
+### Crear Viático
+
+<api>POST /api/viaticos</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/viaticos \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vendedor_id": 5,
+    "tipo": "viaje",
+    "fecha": "2024-03-16",
+    "monto": 800.00,
+    "zona": "Costa Norte",
+    "ruta_id": 3,
+    "descripcion": "Viaje a la zona norte"
+  }'
+```
+</RequestExample>
+
+<ParamField body="vendedor_id" type="integer" required>
+  ID del vendedor
+</ParamField>
+
+<ParamField body="tipo" type="string" required>
+  Tipo de viático: inicial o viaje
+</ParamField>
+
+<ParamField body="fecha" type="string" required>
+  Fecha del viático (formato: YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="monto" type="number" required>
+  Monto del viático
+</ParamField>
+
+<ParamField body="zona" type="string" required>
+  Zona de destino (máximo 255 caracteres)
+</ParamField>
+
+<ParamField body="ruta_id" type="integer" required>
+  ID de la ruta
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Descripción adicional (máximo 255 caracteres)
+</ParamField>
+
+---
+
+### Aprobar/Cambiar Estado del Viático
+
+<api>PATCH /api/viaticos/{id}/estado</api>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://api.fabricamarie.com/api/viaticos/10/estado \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "APROBADO"
+  }'
+```
+</RequestExample>
+
+<ParamField body="estado" type="string" required>
+  Nuevo estado: PENDIENTE, APROBADO, o LIQUIDADO
+</ParamField>
+
+<Note>
+Al aprobar un viático (estado APROBADO), se registra automáticamente un movimiento de EGRESO en la caja con categoría "VIATICO".
+</Note>
+
+---
+
+### Liquidar Viático
+
+<api>POST /api/viaticos/{id}/liquidar</api>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.fabricamarie.com/api/viaticos/10/liquidar \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "usado": 750.00,
+    "vuelto": 50.00,
+    "comprobante": "REC-5678"
+  }'
+```
+</RequestExample>
+
+<ParamField body="usado" type="number" required>
+  Monto usado (debe ser mayor o igual a 0)
+</ParamField>
+
+<ParamField body="vuelto" type="number" required>
+  Monto del vuelto (debe ser mayor o igual a 0)
+</ParamField>
+
+<ParamField body="comprobante" type="string" required>
+  Número de comprobante (máximo 50 caracteres)
+</ParamField>
+
+<ResponseExample>
+```json Respuesta Exitosa
+{
+  "message": "Viatico liquidado correctamente",
+  "data": {
+    "id": 10,
+    "usado": 750.00,
+    "vuelto": 50.00,
+    "estado": "LIQUIDADO",
+    "comprobante": "REC-5678"
+  }
+}
+```
+
+```json Error: Ya Liquidado
+{
+  "message": "Este viatico ya fue liquidado."
+}
+```
+</ResponseExample>

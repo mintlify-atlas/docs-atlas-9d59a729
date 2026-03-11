@@ -1,0 +1,705 @@
+---
+title: 'Operaciones de Caja'
+description: 'Guía completa para cajeros: apertura, movimientos, cierre y conciliación de caja'
+icon: 'cash-register'
+---
+
+## Descripción General
+
+Esta guía está diseñada para el personal de caja (rol CAJERO) y cubre todas las operaciones relacionadas con el manejo de efectivo en Fabrica Marie ERP.
+
+<Info>
+  **Roles con acceso:** ADMIN, CAJERO, GERENTE
+</Info>
+
+## Conceptos Fundamentales
+
+### Estados de Caja
+
+Cada caja puede estar en dos estados:
+
+<CardGroup cols={2}>
+  <Card title="ABIERTA" icon="lock-open" color="#16a34a">
+    **Caja operativa**
+    
+    - Puede recibir y registrar movimientos
+    - Solo puede haber UNA caja abierta por día
+    - Asignada a un usuario específico
+  </Card>
+
+  <Card title="CERRADA" icon="lock" color="#dc2626">
+    **Caja finalizada**
+    
+    - No acepta más movimientos
+    - Tiene arqueo y cierre registrado
+    - Muestra diferencias (sobrantes/faltantes)
+  </Card>
+</CardGroup>
+
+### Tipos de Movimientos
+
+<Accordion title="INGRESO - Entradas de Dinero">
+**Cuándo se registra:**
+- Ventas al contado (automático)
+- Abonos a cuentas por cobrar (automático)
+- Depósitos manuales
+- Reembolsos
+
+**Efecto:** Aumenta el saldo de caja
+</Accordion>
+
+<Accordion title="EGRESO - Salidas de Dinero">
+**Cuándo se registra:**
+- Gastos operativos
+- Retiros de efectivo
+- Viáticos para vendedores
+- Pagos a proveedores
+
+**Efecto:** Disminuye el saldo de caja
+</Accordion>
+
+### Categorías de Movimientos
+
+- **VENTA**: Ingresos por ventas al contado
+- **ABONO**: Cobros de cuentas por cobrar
+- **DEPOSITO**: Depósitos bancarios o de efectivo
+- **RETIRO**: Retiros de efectivo para banco
+- **GASTO**: Gastos operativos varios
+- **VIATICO**: Dinero entregado a vendedores para gastos de ruta
+- **OTRO**: Otros movimientos no categorizados
+
+## Flujo Diario de Caja
+
+### Paso 1: Apertura de Caja
+
+Al inicio de tu turno, debes abrir la caja del día:
+
+<Steps>
+  <Step title="Verificar que no exista caja abierta">
+    El sistema permite solo UNA caja abierta por día. Si intentas abrir una segunda, recibirás un error.
+  </Step>
+
+  <Step title="Contar efectivo inicial">
+    Cuenta el dinero físico que tienes para iniciar operaciones (fondo de cambio).
+  </Step>
+
+  <Step title="Abrir caja en el sistema">
+    ```bash
+    POST /api/caja/abrir
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "monto_apertura": 500.00
+    }
+    ```
+  </Step>
+
+  <Step title="Recibir confirmación">
+    ```json
+    {
+      "id": 234,
+      "usuario_id": 8,
+      "fecha": "2026-03-11",
+      "saldo_inicial": 500.00,
+      "saldo_actual": 500.00,
+      "estado": "ABIERTA"
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  La caja se asigna automáticamente al usuario que la abre. Solo ese usuario puede registrar movimientos y cerrarla.
+</Note>
+
+### Paso 2: Operaciones Durante el Día
+
+Durante tu turno, la caja recibe varios tipos de movimientos:
+
+#### Movimientos Automáticos
+
+Estos se registran automáticamente sin tu intervención:
+
+<Accordion title="Ventas al Contado">
+Cuando un vendedor confirma una venta al contado, el sistema registra automáticamente:
+
+```
+TIPO: INGRESO
+CATEGORÍA: VENTA
+MONTO: S/ 525.00
+DESCRIPCIÓN: Venta confirmada, Venta #1234
+```
+
+No necesitas hacer nada, el ingreso se registra automáticamente en tu caja abierta.
+</Accordion>
+
+<Accordion title="Ventas al Crédito con Adelanto">
+Si una venta crédito incluye adelanto:
+
+```
+TIPO: INGRESO
+CATEGORÍA: VENTA
+MONTO: S/ 200.00 (adelanto)
+DESCRIPCIÓN: Venta al crédito confirmada, Venta #1236
+```
+</Accordion>
+
+<Accordion title="Abonos a Cuentas por Cobrar">
+Cuando se registra un abono:
+
+```
+TIPO: INGRESO
+CATEGORÍA: ABONO
+MONTO: S/ 200.00
+DESCRIPCIÓN: Abono a cuenta #450
+```
+</Accordion>
+
+#### Movimientos Manuales
+
+Estos requieren tu registro manual:
+
+<Accordion title="Gastos Operativos">
+Registrar un gasto:
+
+```bash
+POST /api/caja/movimientos
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "tipo": "EGRESO",
+  "monto": 50.00,
+  "categoria": "GASTO",
+  "descripcion": "Compra de útiles de oficina",
+  "referencia_tipo": null,
+  "referencia_id": null
+}
+```
+</Accordion>
+
+<Accordion title="Viáticos para Vendedores">
+Entregar dinero a un vendedor para gastos de ruta:
+
+```bash
+POST /api/viaticos
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "vendedor_id": 5,
+  "monto": 100.00,
+  "concepto": "Viático para ruta del 11/03/2026",
+  "fecha": "2026-03-11"
+}
+```
+
+Esto registra automáticamente un EGRESO en caja.
+</Accordion>
+
+<Accordion title="Retiro para Depósito Bancario">
+Retirar efectivo para depositar en banco:
+
+```bash
+POST /api/caja/movimientos
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "tipo": "EGRESO",
+  "monto": 5000.00,
+  "categoria": "RETIRO",
+  "descripcion": "Retiro para depósito en Banco BCP"
+}
+```
+</Accordion>
+
+<Accordion title="Depósito de Efectivo">
+Registrar entrada de dinero adicional:
+
+```bash
+POST /api/caja/movimientos
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "tipo": "INGRESO",
+  "monto": 1000.00,
+  "categoria": "DEPOSITO",
+  "descripcion": "Depósito adicional de gerencia"
+}
+```
+</Accordion>
+
+### Paso 3: Consultar Estado de Caja
+
+En cualquier momento puedes consultar el estado actual:
+
+```bash
+GET /api/caja
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+{
+  "id": 234,
+  "usuario_id": 8,
+  "fecha": "2026-03-11",
+  "saldo_inicial": 500.00,
+  "saldo_actual": 3250.00,
+  "estado": "ABIERTA",
+  "movimientos": [
+    {
+      "id": 1001,
+      "tipo": "INGRESO",
+      "monto": 525.00,
+      "categoria": "VENTA",
+      "descripcion": "Venta confirmada, Venta #1234",
+      "created_at": "2026-03-11 09:15:00"
+    },
+    {
+      "id": 1002,
+      "tipo": "EGRESO",
+      "monto": 50.00,
+      "categoria": "GASTO",
+      "descripcion": "Compra de útiles",
+      "created_at": "2026-03-11 10:30:00"
+    }
+  ]
+}
+```
+
+### Paso 4: Cierre de Caja
+
+Al final de tu turno, debes cerrar la caja:
+
+<Steps>
+  <Step title="Contar efectivo físico">
+    Cuenta todo el dinero que tienes en la caja física. Este es el **monto real**.
+  </Step>
+
+  <Step title="Calcular el monto teórico">
+    El sistema calcula automáticamente:
+    
+    ```
+    Monto Teórico = Saldo Inicial + Total Ingresos - Total Egresos
+    ```
+  </Step>
+
+  <Step title="Cerrar caja">
+    ```bash
+    POST /api/caja/cerrar/{caja_id}
+    Authorization: Bearer {token}
+    Content-Type: application/json
+
+    {
+      "monto_cierre_real": 3245.00,
+      "observaciones": "Todo en orden, diferencia por cambio de S/ 5.00"
+    }
+    ```
+  </Step>
+
+  <Step title="Recibir resultado del cierre">
+    ```json
+    {
+      "message": "Caja cerrada correctamente",
+      "cierre": {
+        "id": 189,
+        "caja_id": 234,
+        "saldo_inicial": 500.00,
+        "total_ingresos": 8500.00,
+        "total_egresos": 5750.00,
+        "monto_teorico": 3250.00,
+        "monto_real": 3245.00,
+        "diferencia": -5.00,
+        "estado_diferencia": "FALTANTE",
+        "observaciones": "Todo en orden, diferencia por cambio de S/ 5.00",
+        "cerrado_por": 8,
+        "cerrado_at": "2026-03-11 18:00:00"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  **Diferencias:**
+  - **Positivo**: SOBRANTE (tienes más dinero del esperado)
+  - **Negativo**: FALTANTE (tienes menos dinero del esperado)
+  - **Cero**: SIN DIFERENCIA (el arqueo cuadra perfectamente)
+</Note>
+
+<Warning>
+  Una vez cerrada la caja, **NO puedes registrar más movimientos**. Si necesitas hacer ajustes, contacta a tu supervisor o administrador.
+</Warning>
+
+## Consultar Movimientos
+
+### Todos los Movimientos
+
+```bash
+GET /api/caja/movimientos
+Authorization: Bearer {token}
+```
+
+### Movimientos de una Caja Específica
+
+```bash
+GET /api/caja/{caja_id}/movimientos
+Authorization: Bearer {token}
+```
+
+### Filtrar por Tipo
+
+```bash
+GET /api/caja/movimientos?tipo=INGRESO
+GET /api/caja/movimientos?tipo=EGRESO
+```
+
+### Filtrar por Categoría
+
+```bash
+GET /api/caja/movimientos?categoria=VENTA
+GET /api/caja/movimientos?categoria=GASTO
+```
+
+## Reportes de Caja
+
+### Reporte de Caja por ID
+
+Obtener reporte completo de una caja cerrada:
+
+```bash
+GET /api/caja/reporte/{caja_id}
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+{
+  "caja": {
+    "id": 234,
+    "fecha": "2026-03-11",
+    "usuario": {
+      "nombre": "María Rodríguez"
+    },
+    "saldo_inicial": 500.00,
+    "saldo_final": 3250.00
+  },
+  "movimientos": {
+    "total_ingresos": 8500.00,
+    "total_egresos": 5750.00,
+    "cantidad_ingresos": 45,
+    "cantidad_egresos": 12
+  },
+  "detalle_ingresos": {
+    "VENTA": 7200.00,
+    "ABONO": 1200.00,
+    "DEPOSITO": 100.00
+  },
+  "detalle_egresos": {
+    "GASTO": 350.00,
+    "VIATICO": 400.00,
+    "RETIRO": 5000.00
+  },
+  "cierre": {
+    "monto_teorico": 3250.00,
+    "monto_real": 3245.00,
+    "diferencia": -5.00,
+    "estado_diferencia": "FALTANTE"
+  }
+}
+```
+
+### Reporte por Fecha
+
+```bash
+GET /api/caja/reporte-fecha?fecha=2026-03-11
+Authorization: Bearer {token}
+```
+
+### Consultar Cajas Cerradas
+
+Ver historial de cajas cerradas:
+
+```bash
+GET /api/caja/cerradas
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 234,
+    "fecha": "2026-03-11",
+    "usuario": {
+      "nombre": "María Rodríguez"
+    },
+    "estado": "CERRADA",
+    "saldo_inicial": 500.00,
+    "cerrado_at": "2026-03-11 18:00:00",
+    "cierreCaja": {
+      "monto_teorico": 3250.00,
+      "monto_real": 3245.00,
+      "diferencia": -5.00,
+      "estado_diferencia": "FALTANTE"
+    }
+  },
+  {
+    "id": 233,
+    "fecha": "2026-03-10",
+    "usuario": {
+      "nombre": "María Rodríguez"
+    },
+    "estado": "CERRADA",
+    "saldo_inicial": 500.00,
+    "cerrado_at": "2026-03-10 18:15:00",
+    "cierreCaja": {
+      "monto_teorico": 2890.00,
+      "monto_real": 2890.00,
+      "diferencia": 0.00,
+      "estado_diferencia": "SIN_DIFERENCIA"
+    }
+  }
+]
+```
+
+## Gestión de Viáticos
+
+### Registrar Viático
+
+Cuando entregas dinero a un vendedor:
+
+```bash
+POST /api/viaticos
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "vendedor_id": 5,
+  "monto": 150.00,
+  "concepto": "Combustible y peajes ruta norte",
+  "fecha": "2026-03-11"
+}
+```
+
+Esto automáticamente:
+- ✅ Registra un EGRESO en la caja actual
+- ✅ Crea el registro de viático vinculado al vendedor
+- ✅ Descuenta el monto del saldo de caja
+
+### Consultar Viáticos
+
+```bash
+GET /api/viaticos
+Authorization: Bearer {token}
+```
+
+**Filtrar por vendedor:**
+
+```bash
+GET /api/viaticos?vendedor_id=5
+Authorization: Bearer {token}
+```
+
+## Escenarios Comunes
+
+### Escenario 1: Día Normal
+
+<Steps>
+  <Step title="8:00 AM - Apertura">
+    Abrir caja con S/ 500.00
+  </Step>
+
+  <Step title="Durante el día">
+    - 30 ventas al contado: S/ 6,500.00 (automático)
+    - 15 abonos: S/ 2,000.00 (automático)
+    - 3 viáticos: S/ 300.00 (manual)
+    - 5 gastos menores: S/ 150.00 (manual)
+  </Step>
+
+  <Step title="6:00 PM - Cierre">
+    - Saldo teórico: S/ 500 + S/ 8,500 - S/ 450 = **S/ 8,550.00**
+    - Saldo real contado: **S/ 8,550.00**
+    - Diferencia: **S/ 0.00** ✅
+  </Step>
+</Steps>
+
+### Escenario 2: Retiro para Banco
+
+<Steps>
+  <Step title="Durante el día">
+    Acumulas S/ 10,000.00 en ventas y decides depositar en el banco.
+  </Step>
+
+  <Step title="Registrar retiro">
+    ```bash
+    POST /api/caja/movimientos
+    {
+      "tipo": "EGRESO",
+      "monto": 9000.00,
+      "categoria": "RETIRO",
+      "descripcion": "Depósito banco BCP cuenta 123-456"
+    }
+    ```
+  </Step>
+
+  <Step title="Hacer depósito físico">
+    Llevas S/ 9,000.00 al banco y depositas.
+  </Step>
+
+  <Step title="Continuar operaciones">
+    Sigues trabajando con el saldo restante en caja.
+  </Step>
+</Steps>
+
+### Escenario 3: Diferencia en Cierre
+
+<Steps>
+  <Step title="Contar efectivo">
+    Al cerrar, cuentas S/ 3,240.00 pero el sistema indica S/ 3,250.00.
+  </Step>
+
+  <Step title="Revisar movimientos">
+    Verificas todos los movimientos del día para identificar el error.
+  </Step>
+
+  <Step title="Documentar diferencia">
+    ```bash
+    POST /api/caja/cerrar/234
+    {
+      "monto_cierre_real": 3240.00,
+      "observaciones": "Faltante de S/ 10.00. Revisado dos veces. Posible error en vuelto de venta #1245."
+    }
+    ```
+  </Step>
+
+  <Step title="Reporte a supervisor">
+    Informas la diferencia a tu supervisor para investigación.
+  </Step>
+</Steps>
+
+## Validaciones y Controles
+
+### Validaciones del Sistema
+
+<Accordion title="Apertura de Caja">
+- ✅ Solo UNA caja abierta por día
+- ✅ Monto de apertura debe ser positivo
+- ✅ Usuario autenticado
+</Accordion>
+
+<Accordion title="Movimientos">
+- ✅ Debe existir una caja abierta
+- ✅ Montos deben ser positivos
+- ✅ Categoría válida
+- ✅ Descripción no vacía
+</Accordion>
+
+<Accordion title="Cierre de Caja">
+- ✅ Solo el usuario que abrió puede cerrar
+- ✅ Caja debe estar en estado ABIERTA
+- ✅ Monto real debe ser un número válido
+- ✅ Una vez cerrada, no se puede reabrir
+</Accordion>
+
+## Buenas Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Registro Inmediato" icon="clock">
+    Registra movimientos manuales inmediatamente cuando ocurren. No esperes al final del día.
+  </Card>
+
+  <Card title="Descripciones Claras" icon="file-lines">
+    Usa descripciones detalladas en cada movimiento. Ejemplo: "Compra de papel bond A4 - Factura #123"
+  </Card>
+
+  <Card title="Arqueos Intermedios" icon="calculator">
+    Cuenta el efectivo varias veces durante el día para detectar errores temprano.
+  </Card>
+
+  <Card title="Documentación" icon="receipt">
+    Guarda comprobantes físicos de todos los gastos y retiros.
+  </Card>
+
+  <Card title="Seguridad" icon="shield">
+    Mantén el efectivo en lugar seguro. Realiza retiros para banco cuando acumules montos altos.
+  </Card>
+
+  <Card title="Comunicación" icon="comments">
+    Reporta diferencias inmediatamente a tu supervisor, sin importar el monto.
+  </Card>
+</CardGroup>
+
+## Manejo de Diferencias
+
+### Sobrantes
+
+Si cuentas **más dinero** del esperado:
+
+1. Vuelve a contar cuidadosamente
+2. Revisa si falta registrar algún egreso
+3. Verifica vueltos de ventas
+4. Documenta en observaciones del cierre
+5. Informa a supervisión
+
+### Faltantes
+
+Si cuentas **menos dinero** del esperado:
+
+1. Vuelve a contar cuidadosamente
+2. Revisa si registraste algún ingreso de más
+3. Verifica que todos los egresos estén documentados
+4. Busca comprobantes no registrados
+5. Documenta en observaciones del cierre
+6. Informa a supervisión inmediatamente
+
+<Warning>
+  Diferencias recurrentes o de montos significativos requieren investigación administrativa. Mantén siempre transparencia y documentación completa.
+</Warning>
+
+## Código de Referencia
+
+**CajaController.php** (`app/Http/Controllers/Api/CajaController.php:30-55`)
+
+```php
+public function abrir(Request $request)
+{
+    // Si hay una caja abierta, no permitir abrir otra
+    $caja = Caja::where('fecha', now()->toDateString())
+        ->where('estado', 'ABIERTA')
+        ->first();
+        
+    if ($caja) {
+        return response()->json([
+            'error' => 'Ya existe una caja abierta'
+        ], 400);
+    }
+    
+    return Caja::create([
+        'usuario_id' => auth()->id(),
+        'fecha' => now()->toDateString(),
+        'saldo_inicial' => $request->monto_apertura,
+        'saldo_actual' => $request->monto_apertura,
+        'estado' => 'ABIERTA'
+    ]);
+}
+```
+
+## Siguientes Pasos
+
+<CardGroup cols={2}>
+  <Card title="Proceso de Ventas" icon="cart-shopping" href="/guides/sales-process">
+    Comprende cómo las ventas afectan la caja.
+  </Card>
+
+  <Card title="Reportes del Sistema" icon="chart-line" href="/guides/reports">
+    Aprende a generar reportes de caja y flujo de efectivo.
+  </Card>
+</CardGroup>

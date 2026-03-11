@@ -1,0 +1,491 @@
+---
+title: 'Routing y Navegación'
+description: 'Sistema de rutas con React Router, rutas protegidas y estructura de navegación'
+icon: 'route'
+---
+
+## Descripción General
+
+El sistema de routing de Fabrica Marie ERP utiliza **React Router v6** con rutas protegidas, rutas públicas y un sistema de navegación basado en roles.
+
+## Configuración de React Router
+
+El archivo `App.tsx` contiene toda la configuración de rutas:
+
+<CodeGroup>
+```tsx App.tsx (configuración principal)
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RoleProvider } from "@/contexts/RoleContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { MainLayout } from "@/components/layout/MainLayout";
+import Login from "@/components/auth/login";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <RoleProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </RoleProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+);
+
+export default App;
+```
+</CodeGroup>
+
+## Componentes de Protección de Rutas
+
+### ProtectedRoute
+
+Protege rutas que requieren autenticación:
+
+<CodeGroup>
+```tsx ProtectedRoute Component
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+```
+</CodeGroup>
+
+### PublicRoute
+
+Redirige usuarios autenticados al dashboard:
+
+<CodeGroup>
+```tsx PublicRoute Component
+const PublicRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+```
+</CodeGroup>
+
+### RootHandler
+
+Maneja la ruta raíz con redirección inteligente:
+
+<CodeGroup>
+```tsx RootHandler Component
+const RootHandler = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Si está autenticado, va al dashboard
+  // Si no, va al login
+  return isAuthenticated()
+    ? <Navigate to="/dashboard" replace />
+    : <Navigate to="/login" replace />;
+};
+```
+</CodeGroup>
+
+## Estructura de Rutas
+
+### Rutas Públicas
+
+<CodeGroup>
+```tsx Rutas públicas
+<Routes>
+  {/* Ruta raíz - redirige según autenticación */}
+  <Route path="/" element={<RootHandler />} />
+
+  {/* Login - solo accesible si NO está autenticado */}
+  <Route path="/login" element={
+    <PublicRoute>
+      <Login />
+    </PublicRoute>
+  } />
+</Routes>
+```
+</CodeGroup>
+
+### Rutas Protegidas
+
+Todas las rutas protegidas están dentro de `MainLayout`:
+
+<CodeGroup>
+```tsx Rutas protegidas
+<Route element={
+  <ProtectedRoute>
+    <MainLayout />
+  </ProtectedRoute>
+}>
+  {/* Dashboard */}
+  <Route path="/dashboard" element={<Dashboard />} />
+
+  {/* Almacén */}
+  <Route path="/almacen" element={<StockList />} />
+  <Route path="/almacen/stock" element={<StockList />} />
+  <Route path="/almacen/movimientos" element={<StockMovements />} />
+  <Route path="/almacen/productos" element={<ProductsList />} />
+  <Route path="/almacen/rumas" element={<RumaManagement />} />
+  <Route path="/almacen/seguimiento" element={<ProductTracking />} />
+
+  {/* Ventas */}
+  <Route path="/ventas" element={<SalesHistory />} />
+  <Route path="/ventas/nueva" element={<NewSale />} />
+  <Route path="/ventas/historial" element={<SalesHistory />} />
+  <Route path="/ventas/cobranzas" element={<Collections />} />
+  <Route path="/ventas/reportes" element={<SalesReports />} />
+
+  {/* Clientes */}
+  <Route path="/clientes" element={<ClientsList />} />
+  <Route path="/clientes/lista" element={<ClientsList />} />
+  <Route path="/clientes/crm" element={<ClientsCRM />} />
+  <Route path="/clientes/nuevo" element={<NewClient />} />
+  <Route path="/clientes/deudas" element={<AccountsReceivable />} />
+
+  {/* Caja */}
+  <Route path="/caja" element={<CurrentCash />} />
+  <Route path="/caja/actual" element={<CurrentCash />} />
+  <Route path="/caja/movimientos" element={<CashMovements />} />
+  <Route path="/caja/cierres" element={<CashClosures />} />
+
+  {/* GPS */}
+  <Route path="/gps" element={<GPSTracking />} />
+  <Route path="/gps/seguimiento" element={<GPSTracking />} />
+  <Route path="/gps/reportes" element={<GPSReports />} />
+
+  {/* RRHH */}
+  <Route path="/rrhh" element={<EmployeesList />} />
+  <Route path="/rrhh/empleados" element={<EmployeesList />} />
+  <Route path="/rrhh/bonos" element={<EmployeeBonuses />} />
+
+  {/* Otros */}
+  <Route path="/rutas" element={<RoutesList />} />
+  <Route path="/vehiculos" element={<VehiclesList />} />
+  <Route path="/mantenimiento" element={<MaintenanceList />} />
+  <Route path="/reportes" element={<ReportsMain />} />
+  <Route path="/configuracion" element={<SettingsPage />} />
+</Route>
+```
+</CodeGroup>
+
+### Ruta 404
+
+<CodeGroup>
+```tsx Ruta no encontrada
+{/* Ruta 404 */}
+<Route path="*" element={<NotFound />} />
+```
+</CodeGroup>
+
+## Estructura de Rutas por Módulo
+
+### Dashboard
+```
+/dashboard - Vista principal del dashboard
+```
+
+### Almacén
+```
+/almacen - Lista de stock (vista por defecto)
+/almacen/stock - Lista de stock
+/almacen/movimientos - Movimientos de inventario
+/almacen/productos - Gestión de productos
+/almacen/rumas - Gestión de rumas
+/almacen/seguimiento - Seguimiento de productos
+/almacen/salida-fabrica - Salidas de fábrica
+/almacen/devoluciones - Devoluciones a almacén
+```
+
+### Ventas
+```
+/ventas - Historial de ventas (vista por defecto)
+/ventas/nueva - Nueva venta
+/ventas/historial - Historial de ventas
+/ventas/detalle - Detalle de venta
+/ventas/cobranzas - Gestión de cobranzas
+/ventas/resumen-diario - Resumen diario
+/ventas/reportes - Reportes de ventas
+/ventas/caja-chica - Viáticos y caja chica
+```
+
+### Clientes
+```
+/clientes - Lista de clientes (vista por defecto)
+/clientes/lista - Lista de clientes
+/clientes/crm - CRM de clientes
+/clientes/nuevo - Nuevo cliente
+/clientes/deudas - Cuentas por cobrar
+/clientes/morosos - Clientes morosos
+/clientes/cobrar - Por cobrar
+```
+
+### Caja
+```
+/caja - Caja actual (vista por defecto)
+/caja/actual - Estado actual de caja
+/caja/movimientos - Movimientos de caja
+/caja/salidas - Salidas de caja
+/caja/cierres - Cierres de caja
+/caja/regularizacion - Regularización de caja
+```
+
+### GPS
+```
+/gps - Seguimiento GPS (vista por defecto)
+/gps/seguimiento - Seguimiento en tiempo real
+/gps/reportes - Reportes de GPS
+```
+
+### Recursos Humanos
+```
+/rrhh - Empleados (vista por defecto)
+/rrhh/empleados - Lista de empleados
+/rrhh/bonos - Bonos de empleados
+/rrhh/asistencia - Control de asistencia
+```
+
+### Otros Módulos
+```
+/rutas - Gestión de rutas
+/vehiculos - Gestión de vehículos
+/mantenimiento - Mantenimiento vehicular
+/fidelizacion - Programa de fidelización
+/reportes - Reportes generales
+/reportes/crecimiento-zonas - Crecimiento por zonas
+/configuracion - Configuración del sistema
+```
+
+## Navegación Programática
+
+### useNavigate Hook
+
+<CodeGroup>
+```tsx Navegación con useNavigate
+import { useNavigate } from 'react-router-dom';
+
+const MyComponent = () => {
+  const navigate = useNavigate();
+
+  const handleSave = async () => {
+    await saveData();
+    // Navegar a otra ruta
+    navigate('/ventas/historial');
+  };
+
+  const handleCancel = () => {
+    // Navegar hacia atrás
+    navigate(-1);
+  };
+
+  return (
+    <div>
+      <Button onClick={handleSave}>Guardar</Button>
+      <Button onClick={handleCancel}>Cancelar</Button>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+### Link Component
+
+<CodeGroup>
+```tsx Navegación con Link
+import { Link } from 'react-router-dom';
+
+const Navigation = () => {
+  return (
+    <nav>
+      <Link to="/dashboard">Dashboard</Link>
+      <Link to="/ventas/nueva">Nueva Venta</Link>
+      <Link to="/clientes/lista">Clientes</Link>
+    </nav>
+  );
+};
+```
+</CodeGroup>
+
+## Parámetros de Ruta
+
+### Parámetros URL
+
+<CodeGroup>
+```tsx Uso de parámetros
+import { useParams } from 'react-router-dom';
+
+// Ruta: /ventas/detalle/:id
+const SaleDetail = () => {
+  const { id } = useParams();
+
+  return (
+    <div>
+      <h1>Detalle de Venta #{id}</h1>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+### Query Parameters
+
+<CodeGroup>
+```tsx Uso de query params
+import { useSearchParams } from 'react-router-dom';
+
+const ClientsList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const filter = searchParams.get('filter') || 'all';
+  const search = searchParams.get('search') || '';
+
+  const handleFilterChange = (newFilter: string) => {
+    setSearchParams({ filter: newFilter, search });
+  };
+
+  return (
+    <div>
+      <Input 
+        value={search}
+        onChange={(e) => setSearchParams({ filter, search: e.target.value })}
+      />
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Lazy Loading de Rutas
+
+Para optimizar el rendimiento, puedes usar lazy loading:
+
+<CodeGroup>
+```tsx Lazy loading
+import { lazy, Suspense } from 'react';
+
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const ClientsList = lazy(() => import('@/pages/clients/ClientsList'));
+
+const App = () => (
+  <Suspense fallback={<LoadingSpinner />}>
+    <Routes>
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/clientes" element={<ClientsList />} />
+    </Routes>
+  </Suspense>
+);
+```
+</CodeGroup>
+
+## Control de Acceso por Roles
+
+Las rutas se pueden proteger según el rol del usuario:
+
+<CodeGroup>
+```tsx Protección por rol
+import { useRole } from '@/contexts/RoleContext';
+import { Navigate } from 'react-router-dom';
+
+const AdminRoute = ({ children }: { children: JSX.Element }) => {
+  const { currentRole } = useRole();
+
+  if (currentRole !== 'ADMIN' && currentRole !== 'GERENTE') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
+// Uso
+<Route path="/configuracion" element={
+  <AdminRoute>
+    <SettingsPage />
+  </AdminRoute>
+} />
+```
+</CodeGroup>
+
+## Navegación en el Sidebar
+
+El componente `Sidebar` mapea las rutas a elementos de navegación:
+
+<CodeGroup>
+```tsx Sidebar navigation
+import { useLocation, Link } from 'react-router-dom';
+import { Home, Package, ShoppingCart, Users } from 'lucide-react';
+
+const Sidebar = () => {
+  const location = useLocation();
+
+  const navItems = [
+    { path: '/dashboard', icon: Home, label: 'Dashboard' },
+    { path: '/almacen', icon: Package, label: 'Almacén' },
+    { path: '/ventas', icon: ShoppingCart, label: 'Ventas' },
+    { path: '/clientes', icon: Users, label: 'Clientes' },
+  ];
+
+  return (
+    <nav>
+      {navItems.map((item) => (
+        <Link
+          key={item.path}
+          to={item.path}
+          className={location.pathname.startsWith(item.path) ? 'active' : ''}
+        >
+          <item.icon />
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+};
+```
+</CodeGroup>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="database" href="/development/frontend/state-management">
+    Aprende sobre la gestión de estado
+  </Card>
+  
+  <Card title="Components" icon="puzzle-piece" href="/development/frontend/components">
+    Explora la arquitectura de componentes
+  </Card>
+</CardGroup>

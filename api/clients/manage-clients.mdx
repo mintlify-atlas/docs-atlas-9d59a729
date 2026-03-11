@@ -1,0 +1,508 @@
+---
+title: 'Gestión de Clientes'
+description: 'Endpoints para crear, listar, actualizar y desactivar clientes'
+---
+
+## Listar Clientes
+
+<Note>
+  Obtiene la lista de todos los clientes activos con su información de ruta asociada.
+</Note>
+
+### Endpoint
+
+```
+GET /api/clientes
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Respuesta
+
+Retorna un array de clientes activos.
+
+<ResponseField name="[]" type="array">
+  Array de objetos de cliente
+  
+  <Expandable title="Propiedades de cada cliente">
+    <ResponseField name="id" type="integer">
+      ID único del cliente
+    </ResponseField>
+    
+    <ResponseField name="codigo_cliente" type="string">
+      Código único del cliente
+    </ResponseField>
+    
+    <ResponseField name="razon_social" type="string">
+      Nombre o razón social del cliente
+    </ResponseField>
+    
+    <ResponseField name="tipo_cliente" type="string">
+      Tipo de cliente: TIENDA, DISTRIBUIDOR, MAYORISTA, CONSUMIDOR
+    </ResponseField>
+    
+    <ResponseField name="direccion" type="string">
+      Dirección del cliente
+    </ResponseField>
+    
+    <ResponseField name="telefono" type="string">
+      Teléfono de contacto
+    </ResponseField>
+    
+    <ResponseField name="ruta_id" type="integer">
+      ID de la ruta asignada
+    </ResponseField>
+    
+    <ResponseField name="condicion_pago" type="string">
+      Condición de pago: CONTADO o CREDITO
+    </ResponseField>
+    
+    <ResponseField name="limite_credito" type="number">
+      Límite de crédito autorizado
+    </ResponseField>
+    
+    <ResponseField name="dias_credito" type="integer">
+      Días de plazo para crédito
+    </ResponseField>
+    
+    <ResponseField name="deuda_actual" type="number">
+      Monto de deuda actual
+    </ResponseField>
+    
+    <ResponseField name="activo" type="boolean">
+      Estado del cliente (true = activo)
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Estado del cliente
+    </ResponseField>
+    
+    <ResponseField name="ruta" type="object">
+      Información de la ruta asignada (si existe)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X GET "https://api.fabricamarie.com/api/clientes" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+[
+  {
+    "id": 45,
+    "codigo_cliente": "CLI-00045",
+    "razon_social": "Distribuidora El Sol S.A.",
+    "tipo_cliente": "DISTRIBUIDOR",
+    "direccion": "Av. Principal 123",
+    "telefono": "555-1234",
+    "ruta_id": 5,
+    "condicion_pago": "CREDITO",
+    "limite_credito": 50000.00,
+    "dias_credito": 30,
+    "deuda_actual": 15000.00,
+    "activo": true,
+    "status": "ACTIVO",
+    "ruta": {
+      "id": 5,
+      "nombre": "Ruta Centro",
+      "descripcion": "Zona centro de la ciudad"
+    }
+  },
+  {
+    "id": 46,
+    "codigo_cliente": "CLI-00046",
+    "razon_social": "Tienda La Esperanza",
+    "tipo_cliente": "TIENDA",
+    "direccion": "Calle 5 #234",
+    "telefono": "555-5678",
+    "ruta_id": 5,
+    "condicion_pago": "CONTADO",
+    "limite_credito": 0,
+    "dias_credito": 0,
+    "deuda_actual": 0,
+    "activo": true,
+    "status": "ACTIVO",
+    "ruta": {
+      "id": 5,
+      "nombre": "Ruta Centro",
+      "descripcion": "Zona centro de la ciudad"
+    }
+  }
+]
+```
+
+</CodeGroup>
+
+---
+
+## Crear Cliente
+
+<Note>
+  Crea un nuevo cliente en el sistema con opción de asignarlo a una ruta.
+</Note>
+
+### Endpoint
+
+```
+POST /api/clientes
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros del Body
+
+<ParamField body="codigo_cliente" type="string" required>
+  Código único del cliente (debe ser único en el sistema)
+</ParamField>
+
+<ParamField body="razon_social" type="string" required>
+  Nombre o razón social del cliente
+</ParamField>
+
+<ParamField body="tipo_cliente" type="string">
+  Tipo de cliente. Valores permitidos: `TIENDA`, `DISTRIBUIDOR`, `MAYORISTA`, `CONSUMIDOR`
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Dirección del cliente
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Teléfono de contacto
+</ParamField>
+
+<ParamField body="ruta_id" type="integer">
+  ID de la ruta a la que se asignará el cliente (debe existir en la tabla rutas)
+</ParamField>
+
+<ParamField body="condicion_pago" type="string" required>
+  Condición de pago. Valores permitidos: `CONTADO`, `CREDITO`
+</ParamField>
+
+<ParamField body="limite_credito" type="number">
+  Límite de crédito autorizado (requerido si condicion_pago es CREDITO)
+</ParamField>
+
+<ParamField body="dias_credito" type="integer">
+  Días de plazo para pago a crédito
+</ParamField>
+
+<ParamField body="deuda_actual" type="number">
+  Deuda actual del cliente (default: 0)
+</ParamField>
+
+<ParamField body="activo" type="boolean">
+  Estado del cliente (default: true)
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  Estado textual del cliente
+</ParamField>
+
+### Comportamiento
+
+- Si se proporciona `ruta_id`, el cliente se asigna automáticamente a esa ruta con orden 0
+- El código de cliente debe ser único en el sistema
+- La operación se ejecuta en una transacción de base de datos
+
+<CodeGroup>
+
+```json Ejemplo - Cliente a Crédito
+{
+  "codigo_cliente": "CLI-00050",
+  "razon_social": "Supermercado Los Andes",
+  "tipo_cliente": "MAYORISTA",
+  "direccion": "Av. Los Andes 456",
+  "telefono": "555-9876",
+  "ruta_id": 5,
+  "condicion_pago": "CREDITO",
+  "limite_credito": 100000.00,
+  "dias_credito": 45,
+  "deuda_actual": 0,
+  "activo": true,
+  "status": "ACTIVO"
+}
+```
+
+```json Ejemplo - Cliente de Contado
+{
+  "codigo_cliente": "CLI-00051",
+  "razon_social": "Bodega San Juan",
+  "tipo_cliente": "TIENDA",
+  "direccion": "Calle 10 #789",
+  "telefono": "555-3456",
+  "condicion_pago": "CONTADO",
+  "activo": true,
+  "status": "ACTIVO"
+}
+```
+
+```json Respuesta 201 Created
+{
+  "id": 50,
+  "codigo_cliente": "CLI-00050",
+  "razon_social": "Supermercado Los Andes",
+  "tipo_cliente": "MAYORISTA",
+  "direccion": "Av. Los Andes 456",
+  "telefono": "555-9876",
+  "ruta_id": 5,
+  "condicion_pago": "CREDITO",
+  "limite_credito": 100000.00,
+  "dias_credito": 45,
+  "deuda_actual": 0,
+  "activo": true,
+  "status": "ACTIVO",
+  "created_at": "2026-03-11T10:30:00.000000Z",
+  "updated_at": "2026-03-11T10:30:00.000000Z"
+}
+```
+
+```json Error 422 - Código duplicado
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "codigo_cliente": [
+      "The codigo_cliente has already been taken."
+    ]
+  }
+}
+```
+
+```json Error 422 - Validación
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "razon_social": [
+      "El campo razon_social es obligatorio."
+    ],
+    "condicion_pago": [
+      "El campo condicion_pago debe ser CONTADO o CREDITO."
+    ]
+  }
+}
+```
+
+</CodeGroup>
+
+---
+
+## Ver Detalles de Cliente
+
+<Note>
+  Obtiene información completa de un cliente específico incluyendo sus rutas.
+</Note>
+
+### Endpoint
+
+```
+GET /api/clientes/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del cliente a consultar
+</ParamField>
+
+### Respuesta
+
+<ResponseField name="id" type="integer">
+  ID del cliente
+</ResponseField>
+
+<ResponseField name="ruta" type="object">
+  Información de la ruta principal asignada
+</ResponseField>
+
+<ResponseField name="rutas" type="array">
+  Lista de todas las rutas en las que participa el cliente con información del pivot (orden)
+</ResponseField>
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X GET "https://api.fabricamarie.com/api/clientes/45" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "id": 45,
+  "codigo_cliente": "CLI-00045",
+  "razon_social": "Distribuidora El Sol S.A.",
+  "tipo_cliente": "DISTRIBUIDOR",
+  "direccion": "Av. Principal 123",
+  "telefono": "555-1234",
+  "ruta_id": 5,
+  "condicion_pago": "CREDITO",
+  "limite_credito": 50000.00,
+  "dias_credito": 30,
+  "deuda_actual": 15000.00,
+  "activo": true,
+  "status": "ACTIVO",
+  "ruta": {
+    "id": 5,
+    "nombre": "Ruta Centro",
+    "descripcion": "Zona centro de la ciudad",
+    "activo": true
+  },
+  "rutas": [
+    {
+      "id": 5,
+      "nombre": "Ruta Centro",
+      "pivot": {
+        "cliente_id": 45,
+        "ruta_id": 5,
+        "orden": 3
+      }
+    }
+  ]
+}
+```
+
+```json Error 404 - No encontrado
+{
+  "message": "No query results for model [App\\Models\\Cliente] 45"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Actualizar Cliente
+
+<Note>
+  Actualiza la información de un cliente existente.
+</Note>
+
+### Endpoint
+
+```
+PUT /api/clientes/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del cliente a actualizar
+</ParamField>
+
+### Parámetros del Body
+
+Puede enviar cualquiera de los campos del modelo Cliente para actualizar.
+
+<CodeGroup>
+
+```json Ejemplo de actualización
+{
+  "razon_social": "Distribuidora El Sol S.A.C.",
+  "telefono": "555-1234-EXT100",
+  "limite_credito": 75000.00,
+  "direccion": "Av. Principal 123 - Oficina 2"
+}
+```
+
+```json Respuesta 200 OK
+{
+  "id": 45,
+  "codigo_cliente": "CLI-00045",
+  "razon_social": "Distribuidora El Sol S.A.C.",
+  "tipo_cliente": "DISTRIBUIDOR",
+  "direccion": "Av. Principal 123 - Oficina 2",
+  "telefono": "555-1234-EXT100",
+  "ruta_id": 5,
+  "condicion_pago": "CREDITO",
+  "limite_credito": 75000.00,
+  "dias_credito": 30,
+  "deuda_actual": 15000.00,
+  "activo": true,
+  "status": "ACTIVO",
+  "updated_at": "2026-03-11T11:45:00.000000Z"
+}
+```
+
+</CodeGroup>
+
+---
+
+## Desactivar Cliente
+
+<Warning>
+  Desactiva un cliente en lugar de eliminarlo físicamente del sistema. El cliente permanece en la base de datos pero con estado inactivo.
+</Warning>
+
+### Endpoint
+
+```
+DELETE /api/clientes/{id}
+```
+
+### Autenticación
+
+<ParamField header="Authorization" type="string" required>
+  Token de autenticación Bearer
+</ParamField>
+
+### Parámetros de Ruta
+
+<ParamField path="id" type="integer" required>
+  ID del cliente a desactivar
+</ParamField>
+
+### Comportamiento
+
+- No elimina físicamente el registro
+- Establece el campo `activo` en `false`
+- El cliente no aparecerá en el listado de clientes activos
+- Los registros históricos relacionados se mantienen intactos
+
+<CodeGroup>
+
+```bash Solicitud
+curl -X DELETE "https://api.fabricamarie.com/api/clientes/45" \
+  -H "Authorization: Bearer {token}"
+```
+
+```json Respuesta 200 OK
+{
+  "message": "Cliente desactivado"
+}
+```
+
+```json Error 404 - No encontrado
+{
+  "message": "No query results for model [App\\Models\\Cliente] 45"
+}
+```
+
+</CodeGroup>
+
+## Endpoints Relacionados
+
+- [Rutas de Clientes](/api/clients/routes) - Gestión de rutas y asignación de clientes
+- [Cuentas por Cobrar](/api/clients/accounts-receivable) - Gestión de cuentas y abonos

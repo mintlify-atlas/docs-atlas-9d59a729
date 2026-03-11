@@ -1,0 +1,892 @@
+---
+title: 'Reportes del Sistema'
+description: 'Guía completa de reportes disponibles: ventas, inventario, caja, cuentas por cobrar y más'
+icon: 'chart-line'
+---
+
+## Descripción General
+
+Fabrica Marie ERP ofrece un completo sistema de reportes para análisis de negocio, toma de decisiones y auditoría. Esta guía describe todos los reportes disponibles y cómo utilizarlos.
+
+<Info>
+  **Acceso a reportes:** Varía según rol. GERENTE y ADMIN tienen acceso completo.
+</Info>
+
+## Categorías de Reportes
+
+<CardGroup cols={3}>
+  <Card title="Ventas" icon="cart-shopping" color="#16a34a">
+    Análisis de ventas por múltiples dimensiones
+  </Card>
+  
+  <Card title="Inventario" icon="warehouse" color="#0285c7">
+    Control de stock y movimientos
+  </Card>
+  
+  <Card title="Caja" icon="cash-register" color="#ca8a04">
+    Flujo de efectivo y cierres
+  </Card>
+  
+  <Card title="Cuentas por Cobrar" icon="file-invoice-dollar" color="#dc2626">
+    Estado de créditos y cobros
+  </Card>
+  
+  <Card title="Vehículos" icon="truck" color="#9333ea">
+    Mantenimiento y GPS tracking
+  </Card>
+  
+  <Card title="Rendimiento" icon="chart-bar" color="#ec4899">
+    KPIs y métricas de negocio
+  </Card>
+</CardGroup>
+
+## Reportes de Ventas
+
+### Reporte General de Ventas
+
+El reporte más completo, con múltiples filtros:
+
+```bash
+GET /api/ventas/reporte
+Authorization: Bearer {token}
+```
+
+**Parámetros disponibles:**
+
+<Accordion title="Filtros de Fecha">
+- `fecha_desde`: Fecha inicial (YYYY-MM-DD)
+- `fecha_hasta`: Fecha final (YYYY-MM-DD)
+
+**Ejemplo:**
+```bash
+GET /api/ventas/reporte?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+```
+</Accordion>
+
+<Accordion title="Filtros de Cliente y Vendedor">
+- `cliente_id`: Filtrar por un cliente específico
+- `vendedor_id`: Filtrar por un vendedor específico
+
+**Ejemplo:**
+```bash
+GET /api/ventas/reporte?vendedor_id=5&fecha_desde=2026-03-01
+```
+</Accordion>
+
+<Accordion title="Filtros de Producto y Tipo de Pago">
+- `producto_id`: Ventas que incluyan un producto específico
+- `tipo_pago`: CONTADO o CREDITO
+
+**Ejemplo:**
+```bash
+GET /api/ventas/reporte?tipo_pago=CREDITO&fecha_desde=2026-03-01
+```
+</Accordion>
+
+**Respuesta:**
+
+```json
+{
+  "filtros": {
+    "fecha_desde": "2026-03-01",
+    "fecha_hasta": "2026-03-11",
+    "vendedor_id": 5
+  },
+  "resumen": {
+    "cantidad_ventas": 45,
+    "total_vendido": 15750.00,
+    "total_contado": 10200.00,
+    "total_credito": 5550.00
+  },
+  "ventas": [
+    {
+      "codigo": "VTA-001234",
+      "fecha": "2026-03-11 10:30:00",
+      "cliente": {
+        "razon_social": "Bodega El Sol"
+      },
+      "vendedor": {
+        "usuario": {
+          "nombre": "Carlos Mendoza"
+        }
+      },
+      "items": [
+        {
+          "producto": {
+            "nombre": "Pan Blanco Grande"
+          },
+          "cantidad": 50,
+          "precio_unitario": 3.50,
+          "subtotal": 175.00
+        }
+      ],
+      "tipo_pago": "CONTADO",
+      "total_neto": 525.00
+    }
+  ]
+}
+```
+
+### Exportar Ventas a Excel
+
+Descarga el reporte en formato Excel:
+
+```bash
+GET /api/ventas/exportar-excel?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+Esto descarga un archivo `.xls` con:
+- Listado completo de ventas
+- Código de venta
+- Fecha
+- Cliente
+- Vendedor
+- Productos vendidos
+- Tipo de pago
+- Total neto
+- **Totales consolidados**:
+  - Total vendido
+  - Total contado
+  - Total crédito
+
+### Ventas por Vendedor
+
+Compara el rendimiento de todos los vendedores:
+
+```bash
+GET /api/reportes/ventas/por-vendedor?mes=2026-03
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "vendedor": {
+      "id": 5,
+      "nombre": "Carlos Mendoza"
+    },
+    "cantidad_ventas": 120,
+    "total_vendido": 42500.00,
+    "total_contado": 30000.00,
+    "total_credito": 12500.00,
+    "promedio_venta": 354.17,
+    "clientes_atendidos": 35
+  },
+  {
+    "vendedor": {
+      "id": 7,
+      "nombre": "Ana Torres"
+    },
+    "cantidad_ventas": 98,
+    "total_vendido": 35600.00,
+    "promedio_venta": 363.27,
+    "clientes_atendidos": 28
+  }
+]
+```
+
+### Ventas por Producto
+
+Identifica productos más vendidos:
+
+```bash
+GET /api/reportes/ventas/por-producto?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "producto": {
+      "id": 1,
+      "nombre": "Pan Blanco Grande",
+      "sku": "PAN-001"
+    },
+    "cantidad_vendida": 4500,
+    "total_vendido": 15750.00,
+    "numero_ventas": 120,
+    "precio_promedio": 3.50
+  },
+  {
+    "producto": {
+      "id": 2,
+      "nombre": "Pan Integral Grande",
+      "sku": "PAN-002"
+    },
+    "cantidad_vendida": 3200,
+    "total_vendido": 12800.00,
+    "numero_ventas": 95,
+    "precio_promedio": 4.00
+  }
+]
+```
+
+### Ventas por Cliente
+
+Analiza el comportamiento de compra de clientes:
+
+```bash
+GET /api/reportes/ventas/por-cliente?fecha_desde=2026-03-01
+Authorization: Bearer {token}
+```
+
+## Reportes de Inventario
+
+### Estado Actual de Stock
+
+Consulta el stock disponible de todos los productos:
+
+```bash
+GET /api/inventario/stock
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "producto": {
+      "id": 1,
+      "nombre": "Pan Blanco Grande",
+      "sku": "PAN-001",
+      "stock_minimo": 100
+    },
+    "ruma": {
+      "codigo": "R-A1",
+      "nombre": "Ruma A1 - Panes"
+    },
+    "cantidad": 450,
+    "fecha_ultimo_mov": "2026-03-11 14:30:00"
+  },
+  {
+    "producto": {
+      "id": 1,
+      "nombre": "Pan Blanco Grande"
+    },
+    "ruma": {
+      "codigo": "R-B2",
+      "nombre": "Ruma B2 - Panes"
+    },
+    "cantidad": 300
+  }
+]
+```
+
+### Alertas de Stock Mínimo
+
+Productos que requieren reabastecimiento:
+
+```bash
+GET /api/inventario/alertas/stock-minimo
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "producto": {
+      "id": 5,
+      "nombre": "Galleta Integral",
+      "sku": "GAL-003",
+      "stock_minimo": 200
+    },
+    "stock_actual": 85,
+    "deficit": 115,
+    "alerta": "CRITICO"
+  },
+  {
+    "producto": {
+      "id": 8,
+      "nombre": "Bizcocho Vainilla"
+    },
+    "stock_actual": 150,
+    "stock_minimo": 180,
+    "deficit": 30,
+    "alerta": "BAJO"
+  }
+]
+```
+
+<Warning>
+  Productos con alerta CRÍTICO requieren producción o compra urgente para no afectar las ventas.
+</Warning>
+
+### Kardex de Producto
+
+Historial completo de movimientos de un producto:
+
+```bash
+GET /api/kardex/{producto_id}?desde=2026-03-01&hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+**Respuesta:**
+
+```json
+[
+  {
+    "fecha": "2026-03-11 08:00:00",
+    "tipo": "INGRESO",
+    "ingreso": 200,
+    "salida": 0,
+    "stock": 650,
+    "motivo": "Producción del día - Hornada #5",
+    "usuario_id": 3
+  },
+  {
+    "fecha": "2026-03-11 10:30:00",
+    "tipo": "SALIDA",
+    "ingreso": 0,
+    "salida": 150,
+    "stock": 500,
+    "motivo": "Despacho de fabrica. Salida #45",
+    "usuario_id": 3
+  },
+  {
+    "fecha": "2026-03-11 17:00:00",
+    "tipo": "DEVOLUCION_BUENA",
+    "ingreso": 25,
+    "salida": 0,
+    "stock": 525,
+    "motivo": "Devolución buena aceptada",
+    "usuario_id": 3
+  }
+]
+```
+
+### Kardex Valorizado
+
+Kardex con valores monetarios:
+
+```bash
+GET /api/kardex/{producto_id}/valorizado
+Authorization: Bearer {token}
+```
+
+Incluye:
+- Precio unitario por movimiento
+- Valor de ingresos
+- Valor de salidas
+- Saldo valorizado
+
+### Reporte de Movimientos
+
+Todos los movimientos de stock en un período:
+
+```bash
+GET /api/inventario/movimientos?fecha_desde=2026-03-01
+Authorization: Bearer {token}
+```
+
+### Reporte de Salidas
+
+Salidas de fábrica realizadas:
+
+```bash
+GET /api/inventario/salidas?fecha_desde=2026-03-01&estado=COMPLETADO
+Authorization: Bearer {token}
+```
+
+### Reporte de Devoluciones
+
+```bash
+GET /api/inventario/devoluciones?fecha_desde=2026-03-01&tipo=MALA
+Authorization: Bearer {token}
+```
+
+Permite analizar:
+- Mermas por productos dañados
+- Vendedores con más devoluciones
+- Patrones de productos problemáticos
+
+## Reportes de Caja
+
+### Reporte de Caja Específica
+
+Detalle completo de una caja cerrada:
+
+```bash
+GET /api/caja/reporte/{caja_id}
+Authorization: Bearer {token}
+```
+
+**Incluye:**
+- Saldo inicial y final
+- Total de ingresos por categoría
+- Total de egresos por categoría
+- Detalle de todos los movimientos
+- Información de cierre y arqueo
+- Diferencias encontradas
+
+### Reporte de Caja por Fecha
+
+```bash
+GET /api/caja/reporte-fecha?fecha=2026-03-11
+Authorization: Bearer {token}
+```
+
+### Historial de Cajas Cerradas
+
+```bash
+GET /api/caja/cerradas?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+**Respuesta incluye:**
+
+```json
+[
+  {
+    "id": 234,
+    "fecha": "2026-03-11",
+    "usuario": "María Rodríguez",
+    "saldo_inicial": 500.00,
+    "total_ingresos": 8500.00,
+    "total_egresos": 5750.00,
+    "monto_teorico": 3250.00,
+    "monto_real": 3245.00,
+    "diferencia": -5.00,
+    "estado_diferencia": "FALTANTE"
+  }
+]
+```
+
+### Reporte de Flujo de Efectivo
+
+Analiza el flujo de efectivo en un período:
+
+```bash
+GET /api/reportes/flujo-efectivo?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+**Muestra:**
+- Ingresos totales por día
+- Egresos totales por día
+- Flujo neto diario
+- Tendencias
+- Promedio diario
+
+### Reporte de Movimientos de Caja
+
+```bash
+GET /api/caja/movimientos?fecha_desde=2026-03-01&categoria=VENTA
+Authorization: Bearer {token}
+```
+
+Filtros disponibles:
+- `tipo`: INGRESO o EGRESO
+- `categoria`: VENTA, ABONO, GASTO, VIATICO, etc.
+- `fecha_desde` / `fecha_hasta`
+
+## Reportes de Cuentas por Cobrar
+
+### Estado de Cuentas por Cobrar
+
+Visión general de créditos:
+
+```bash
+GET /api/cuentas-por-cobrar?estado=PENDIENTE
+Authorization: Bearer {token}
+```
+
+**Estados:**
+- `PENDIENTE`: Sin pagos
+- `PARCIAL`: Pagos parciales
+- `PAGADO`: Completamente pagado
+
+**Respuesta:**
+
+```json
+[
+  {
+    "id": 450,
+    "venta": {
+      "codigo": "VTA-001236",
+      "fecha": "2026-03-11"
+    },
+    "cliente": {
+      "razon_social": "Bodega Miñita",
+      "ruc": "20123456789"
+    },
+    "monto_total": 600.00,
+    "saldo": 400.00,
+    "estado": "PENDIENTE",
+    "dias_vencido": 5,
+    "abonos": [
+      {
+        "monto": 200.00,
+        "fecha": "2026-03-12",
+        "metodo_pago": "Efectivo"
+      }
+    ]
+  }
+]
+```
+
+### Cuentas Vencidas
+
+Créditos que superaron el plazo de pago:
+
+```bash
+GET /api/reportes/cuentas-vencidas
+Authorization: Bearer {token}
+```
+
+**Clasificación:**
+- **0-15 días**: Vencimiento reciente
+- **16-30 días**: Vencimiento medio
+- **31-60 días**: Vencimiento alto
+- **61+ días**: Vencimiento crítico
+
+### Reporte de Cobros
+
+Abonos registrados en un período:
+
+```bash
+GET /api/reportes/cobros?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+### Cuentas por Cliente
+
+Estado de deuda de un cliente específico:
+
+```bash
+GET /api/cuentas-por-cobrar?cliente_id=18
+Authorization: Bearer {token}
+```
+
+### Cuentas por Vendedor
+
+Créditos generados por cada vendedor:
+
+```bash
+GET /api/reportes/cuentas-por-cobrar/por-vendedor
+Authorization: Bearer {token}
+```
+
+## Reportes de Vehículos y GPS
+
+### Estado de Vehículos
+
+```bash
+GET /api/vehiculos
+Authorization: Bearer {token}
+```
+
+Muestra estado operativo de cada vehículo.
+
+### Historial de Mantenimiento
+
+```bash
+GET /api/mantenimientos?vehiculo_id=2
+Authorization: Bearer {token}
+```
+
+**Información:**
+- Fecha de mantenimiento
+- Tipo de servicio
+- Costo
+- Kilometraje
+- Próximo mantenimiento
+
+### Tracking GPS por Vehículo
+
+```bash
+GET /api/gps?vehiculo_id=2&fecha=2026-03-11
+Authorization: Bearer {token}
+```
+
+### Reporte de Rutas Recorridas
+
+```bash
+GET /api/reportes/rutas-recorridas?vehiculo_id=2&fecha_desde=2026-03-01
+Authorization: Bearer {token}
+```
+
+Incluye:
+- Kilómetros recorridos
+- Tiempo en ruta
+- Paradas realizadas
+- Velocidad promedio
+
+## Reportes de Rendimiento
+
+### Dashboard de KPIs
+
+```bash
+GET /api/reportes/kpis?fecha_desde=2026-03-01&fecha_hasta=2026-03-11
+Authorization: Bearer {token}
+```
+
+**Métricas incluidas:**
+
+```json
+{
+  "ventas": {
+    "total": 185000.00,
+    "cantidad": 523,
+    "promedio_venta": 353.73,
+    "crecimiento_vs_mes_anterior": 12.5
+  },
+  "inventario": {
+    "valor_total_stock": 45000.00,
+    "productos_bajo_minimo": 8,
+    "rotacion_promedio": 15.2
+  },
+  "cuentas_por_cobrar": {
+    "total_pendiente": 25000.00,
+    "cuentas_vencidas": 12,
+    "monto_vencido": 8500.00
+  },
+  "caja": {
+    "ingresos_totales": 165000.00,
+    "egresos_totales": 95000.00,
+    "flujo_neto": 70000.00
+  }
+}
+```
+
+### Reporte de Rentabilidad
+
+```bash
+GET /api/reportes/rentabilidad?mes=2026-03
+Authorization: Bearer {token}
+```
+
+Analiza:
+- Ventas totales
+- Costo de ventas
+- Margen bruto
+- Gastos operativos
+- Utilidad neta
+
+### Comparativo de Períodos
+
+```bash
+GET /api/reportes/comparativo?periodo1=2026-02&periodo2=2026-03
+Authorization: Bearer {token}
+```
+
+Compara:
+- Ventas
+- Clientes activos
+- Productos vendidos
+- Crecimiento porcentual
+
+## Visualización de Reportes
+
+### Gráficos Recomendados
+
+<Accordion title="Ventas por Día - Gráfico de Líneas">
+Muestra la tendencia de ventas a lo largo del tiempo.
+
+```javascript
+const datos = await fetch('/api/ventas/reporte?fecha_desde=2026-03-01');
+const ventasPorDia = agruparPorDia(datos.ventas);
+
+// Usar biblioteca de gráficos (Chart.js, Recharts, etc.)
+<LineChart data={ventasPorDia} />
+```
+</Accordion>
+
+<Accordion title="Ventas por Producto - Gráfico de Barras">
+Compara el rendimiento de diferentes productos.
+
+```javascript
+const datos = await fetch('/api/reportes/ventas/por-producto');
+
+<BarChart data={datos} x="producto.nombre" y="total_vendido" />
+```
+</Accordion>
+
+<Accordion title="Distribución Contado vs Crédito - Pie Chart">
+Muestra la proporción de tipos de pago.
+
+```javascript
+const datos = await fetch('/api/ventas/reporte');
+const distribucion = [
+  { name: 'Contado', value: datos.resumen.total_contado },
+  { name: 'Crédito', value: datos.resumen.total_credito }
+];
+
+<PieChart data={distribucion} />
+```
+</Accordion>
+
+<Accordion title="Stock por Ruma - Stacked Bar Chart">
+Visualiza la distribución de productos en rumas.
+
+```javascript
+const stock = await fetch('/api/inventario/stock');
+
+<StackedBarChart data={stock} x="ruma.codigo" y="cantidad" groupBy="producto.nombre" />
+```
+</Accordion>
+
+## Automatización de Reportes
+
+### Reportes Programados
+
+Configura reportes automáticos:
+
+```bash
+POST /api/reportes/programar
+Authorization: Bearer {token}
+
+{
+  "tipo": "VENTAS_DIARIAS",
+  "frecuencia": "DIARIO",
+  "hora": "18:00",
+  "destinatarios": ["gerencia@fabricamarie.com"],
+  "formato": "PDF"
+}
+```
+
+### Notificaciones de Alertas
+
+Configura alertas automáticas:
+
+- Stock mínimo alcanzado
+- Ventas bajo objetivo
+- Cuentas vencidas
+- Diferencias en caja
+
+## Exportación de Reportes
+
+### Formatos Disponibles
+
+<CardGroup cols={3}>
+  <Card title="Excel (.xls)" icon="file-excel">
+    Ideal para análisis y manipulación de datos
+  </Card>
+  
+  <Card title="PDF" icon="file-pdf">
+    Perfecto para impresión y presentaciones
+  </Card>
+  
+  <Card title="CSV" icon="file-csv">
+    Compatible con cualquier herramienta de datos
+  </Card>
+</CardGroup>
+
+### Ejemplo de Exportación
+
+```javascript
+// Exportar ventas a Excel
+async function exportarVentas() {
+  const params = new URLSearchParams({
+    fecha_desde: '2026-03-01',
+    fecha_hasta: '2026-03-11',
+    vendedor_id: 5
+  });
+
+  const response = await fetch(
+    `/api/ventas/exportar-excel?${params}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ventas_${Date.now()}.xls`;
+  a.click();
+}
+```
+
+## Buenas Prácticas
+
+<CardGroup cols={2}>
+  <Card title="Revisión Regular" icon="calendar-check">
+    Revisa reportes clave diariamente:
+    - Ventas del día
+    - Stock mínimo
+    - Cuentas vencidas
+    - Cierres de caja
+  </Card>
+
+  <Card title="Análisis de Tendencias" icon="chart-line">
+    Busca patrones en períodos largos:
+    - Productos más vendidos por temporada
+    - Clientes con mayor crecimiento
+    - Rutas más rentables
+  </Card>
+
+  <Card title="Comparaciones" icon="code-compare">
+    Compara períodos similares:
+    - Mes actual vs mes anterior
+    - Año actual vs año anterior
+    - Vendedor A vs Vendedor B
+  </Card>
+
+  <Card title="Acción sobre Datos" icon="bullseye">
+    Los reportes deben generar acciones:
+    - Stock bajo → Producir más
+    - Venta baja → Investigar causas
+    - Cuenta vencida → Gestionar cobro
+  </Card>
+</CardGroup>
+
+## Permisos de Reportes por Rol
+
+| Reporte | ADMIN | GERENTE | SUPERVISOR | VENDEDOR | CAJERO | ALMACENERO |
+|---------|-------|---------|------------|----------|--------|------------|
+| Ventas Generales | ✅ | ✅ | ✅ | 🔒 | ❌ | ❌ |
+| Ventas Propias | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Inventario | ✅ | ✅ | ✅ | 🔒 | ❌ | ✅ |
+| Caja | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Cuentas por Cobrar | ✅ | ✅ | ✅ | 🔒 | ✅ | ❌ |
+| KPIs | ✅ | ✅ | 🔒 | ❌ | ❌ | ❌ |
+| GPS/Vehículos | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+🔒 = Acceso limitado (solo su información)
+
+## Código de Referencia
+
+**VentaController.php** (`app/Http/Controllers/Api/VentaController.php:29-52`)
+
+```php
+public function reporte(Request $request)
+{
+    $ventas = $this->buildReporteQuery($request)->get();
+
+    $resumen = [
+        'cantidad_ventas' => $ventas->count(),
+        'total_vendido' => (float) $ventas->sum('total_neto'),
+        'total_contado' => (float) $ventas->where('tipo_pago', 'CONTADO')->sum('total_neto'),
+        'total_credito' => (float) $ventas->where('tipo_pago', '!=', 'CONTADO')->sum('total_neto'),
+    ];
+
+    return response()->json([
+        'filtros' => $request->only([...]),
+        'resumen' => $resumen,
+        'ventas' => $ventas,
+    ]);
+}
+```
+
+## Siguientes Pasos
+
+<CardGroup cols={2}>
+  <Card title="Proceso de Ventas" icon="cart-shopping" href="/guides/sales-process">
+    Comprende cómo se generan los datos de ventas.
+  </Card>
+
+  <Card title="Operaciones de Inventario" icon="warehouse" href="/guides/inventory-operations">
+    Aprende sobre movimientos de stock y kardex.
+  </Card>
+</CardGroup>

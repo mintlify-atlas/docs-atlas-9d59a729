@@ -1,0 +1,517 @@
+---
+title: 'Arquitectura de Componentes'
+description: 'Componentes UI, componentes de características y patrones de diseño en el frontend'
+icon: 'puzzle-piece'
+---
+
+## Descripción General
+
+El frontend de Fabrica Marie ERP utiliza una arquitectura de componentes organizada en tres capas principales:
+
+1. **Componentes UI** (shadcn/ui): Componentes base reutilizables
+2. **Componentes de Características**: Componentes específicos de módulos (auth, dashboard, sales, etc.)
+3. **Componentes de Layout**: Estructura principal de la aplicación
+
+## Componentes UI (shadcn/ui)
+
+Los componentes UI están ubicados en `src/components/ui/` y proporcionan la base del sistema de diseño.
+
+### Componentes Disponibles
+
+<CardGroup cols={3}>
+  <Card title="Button" icon="square">
+    Botones con múltiples variantes y tamaños
+  </Card>
+  <Card title="Card" icon="id-card">
+    Contenedores para agrupar contenido
+  </Card>
+  <Card title="Input" icon="keyboard">
+    Campos de entrada de texto
+  </Card>
+  <Card title="Select" icon="list">
+    Selectores dropdown
+  </Card>
+  <Card title="Dialog" icon="window-maximize">
+    Modales y diálogos
+  </Card>
+  <Card title="Table" icon="table">
+    Tablas de datos
+  </Card>
+  <Card title="Badge" icon="tag">
+    Etiquetas y badges
+  </Card>
+  <Card title="Toast" icon="bell">
+    Notificaciones
+  </Card>
+  <Card title="Form" icon="file-alt">
+    Formularios con validación
+  </Card>
+</CardGroup>
+
+### Ejemplo: Button Component
+
+<CodeGroup>
+```tsx components/ui/button.tsx
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
+        outline: "border border-input bg-background hover:bg-secondary hover:text-secondary-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-secondary hover:text-secondary-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+        success: "bg-success text-success-foreground hover:bg-success/90 shadow-sm",
+        warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-sm",
+        gradient: "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-lg px-8",
+        xl: "h-12 rounded-xl px-10 text-base",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button";
+    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+  },
+);
+Button.displayName = "Button";
+
+export { Button, buttonVariants };
+```
+</CodeGroup>
+
+### Uso del Button
+
+<CodeGroup>
+```tsx Ejemplo de uso
+import { Button } from '@/components/ui/button';
+
+// Variantes
+<Button variant="default">Guardar</Button>
+<Button variant="destructive">Eliminar</Button>
+<Button variant="outline">Cancelar</Button>
+<Button variant="success">Confirmar</Button>
+<Button variant="ghost">Cerrar</Button>
+
+// Tamaños
+<Button size="sm">Pequeño</Button>
+<Button size="default">Normal</Button>
+<Button size="lg">Grande</Button>
+<Button size="icon"><Icon /></Button>
+```
+</CodeGroup>
+
+### Ejemplo: Card Component
+
+<CodeGroup>
+```tsx components/ui/card.tsx
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div 
+      ref={ref} 
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm", 
+        className
+      )} 
+      {...props} 
+    />
+  )
+);
+Card.displayName = "Card";
+
+const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
+  ),
+);
+CardHeader.displayName = "CardHeader";
+
+const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h3 ref={ref} className={cn("text-2xl font-semibold leading-none tracking-tight", className)} {...props} />
+  ),
+);
+CardTitle.displayName = "CardTitle";
+
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  ),
+);
+CardContent.displayName = "CardContent";
+
+export { Card, CardHeader, CardTitle, CardContent };
+```
+</CodeGroup>
+
+## Componentes de Características
+
+### Componentes de Autenticación
+
+Ubicados en `src/components/auth/`
+
+<CodeGroup>
+```tsx components/auth/login.tsx
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, loading, error } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const result = await login(formData.email, formData.password);
+
+    if (result.success) {
+      window.location.href = '/dashboard';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+          <h2 className="text-3xl font-bold text-white text-center">
+            Sistema ERP Fabrica Marie
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-8 py-8">
+          {error && (
+            <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          <div className="mb-6">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Usuario
+            </label>
+            <input
+              type="text"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+              className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+          >
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+```
+</CodeGroup>
+
+### Componentes del Dashboard
+
+Ubicados en `src/components/dashboard/`
+
+<CodeGroup>
+```tsx components/dashboard/KPICard.tsx
+import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
+
+interface KPICardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: LucideIcon;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+  };
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
+}
+
+export const KPICard = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  trend,
+  variant = 'default',
+}: KPICardProps) => {
+  return (
+    <div className="relative rounded-xl border p-5 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
+      <div className="relative flex items-start justify-between">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">
+            {title}
+          </p>
+          <p className="text-2xl lg:text-3xl font-display font-bold tracking-tight">
+            {typeof value === 'number' ? value.toLocaleString('es-PE') : value}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground">
+              {subtitle}
+            </p>
+          )}
+          {trend && (
+            <div className="flex items-center gap-1 text-xs">
+              <span className={cn(
+                "font-medium",
+                trend.isPositive ? 'text-success' : 'text-destructive'
+              )}>
+                {trend.isPositive ? '+' : ''}{trend.value}%
+              </span>
+              <span className="text-muted-foreground">vs ayer</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-primary/10 text-primary">
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+**Componentes disponibles:**
+- `KPICard.tsx` - Tarjetas de métricas clave
+- `RecentSalesTable.tsx` - Tabla de ventas recientes
+- `StockAlerts.tsx` - Alertas de inventario
+- `ClientsOverview.tsx` - Resumen de clientes
+- `QuickActions.tsx` - Acciones rápidas
+
+### Componentes de Ventas
+
+Ubicados en `src/components/sales/`
+
+<CodeGroup>
+```tsx components/sales/ProductSearch.tsx
+import { useState } from 'react';
+import { Search, Package, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface ProductSearchProps {
+  onAddProduct: (product: Producto) => void;
+  lista_productos: any[];
+}
+
+export const ProductSearch = ({ onAddProduct, lista_productos }: ProductSearchProps) => {
+  const [searchProduct, setSearchProduct] = useState('');
+  const [filterMarca, setFilterMarca] = useState<string>('all');
+
+  const filteredProducts = lista_productos.filter(p => {
+    const matchesSearch = p.nombre.toLowerCase().includes(searchProduct.toLowerCase()) ||
+      p.sku.toLowerCase().includes(searchProduct.toLowerCase());
+    const matchesMarca = filterMarca === 'all' || p.marca === filterMarca;
+    return matchesSearch && matchesMarca;
+  });
+
+  return (
+    <div className="bg-card rounded-xl border shadow-card p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Package className="h-5 w-5 text-primary" />
+        <h3 className="font-semibold">Productos</h3>
+      </div>
+
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre, SKU o marca..."
+          value={searchProduct}
+          onChange={(e) => setSearchProduct(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto">
+        {filteredProducts.map((product) => (
+          <div
+            key={product.id}
+            className="flex items-center justify-between p-3 rounded-lg border bg-background hover:bg-secondary/50 transition-colors cursor-pointer"
+            onClick={() => onAddProduct(product)}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium text-sm">{product.nombre}</p>
+                {product.marca && (
+                  <Badge variant="outline" className="text-xs">{product.marca}</Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">SKU: {product.sku}</span>
+            </div>
+            <div className="text-right flex items-center gap-2">
+              <p className="font-semibold text-primary">S/ {Number(product.precio_base).toFixed(2)}</p>
+              <Button size="sm" variant="ghost" className="h-7 px-2">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+**Componentes disponibles:**
+- `ProductSearch.tsx` - Búsqueda y selección de productos
+- `SaleCart.tsx` - Carrito de venta
+- `ClientSelector.tsx` - Selector de cliente
+
+## Componentes de Layout
+
+Ubicados en `src/components/layout/`
+
+### MainLayout
+
+<CodeGroup>
+```tsx components/layout/MainLayout.tsx
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Sidebar } from './Sidebar';
+import { Header } from './Header';
+
+export const MainLayout = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+**Componentes de layout:**
+- `MainLayout.tsx` - Layout principal con sidebar y header
+- `Sidebar.tsx` - Barra lateral de navegación
+- `Header.tsx` - Encabezado con usuario y notificaciones
+- `RoleSelector.tsx` - Selector de rol de usuario
+
+## Patrones de Uso
+
+### Composición de Componentes
+
+<CodeGroup>
+```tsx Ejemplo de composición
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+const ProductCard = ({ product }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          {product.nombre}
+          <Badge variant={product.stock > 0 ? "success" : "destructive"}>
+            {product.stock > 0 ? 'En Stock' : 'Agotado'}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-bold text-primary">
+          S/ {product.precio.toFixed(2)}
+        </p>
+        <Button className="w-full mt-4">
+          Agregar al Carrito
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+```
+</CodeGroup>
+
+### Props y TypeScript
+
+<CodeGroup>
+```tsx Tipado de Props
+interface ProductCardProps {
+  product: {
+    id: string;
+    nombre: string;
+    precio: number;
+    stock: number;
+  };
+  onAddToCart?: (productId: string) => void;
+  className?: string;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onAddToCart,
+  className 
+}) => {
+  // Implementación
+};
+```
+</CodeGroup>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Routing" icon="route" href="/development/frontend/routing">
+    Aprende sobre las rutas y navegación
+  </Card>
+  
+  <Card title="State Management" icon="database" href="/development/frontend/state-management">
+    Gestión de estado con Context API
+  </Card>
+</CardGroup>

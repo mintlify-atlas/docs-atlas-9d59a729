@@ -1,0 +1,731 @@
+---
+title: 'Mejores Prácticas de Producción'
+description: 'Optimización, seguridad, monitoreo y mantenimiento para Fabrica Marie ERP en entornos de producción'
+---
+
+## Queue Workers (Procesamiento en Segundo Plano)
+
+Los workers de cola procesan tareas en segundo plano como envío de correos, generación de reportes y procesamiento de datos.
+
+### Configuración con Supervisor
+
+Instala Supervisor:
+
+```bash
+sudo apt install -y supervisor
+```
+
+Crea el archivo de configuración:
+
+```bash
+sudo nano /etc/supervisor/conf.d/fabricamarie-worker.conf
+```
+
+Agrega la siguiente configuración:
+
+```ini
+[program:fabricamarie-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/fabricamarie/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=4
+redirect_stderr=true
+stdout_logfile=/var/www/fabricamarie/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+<Note>
+  `numprocs=4` significa que se ejecutarán 4 workers simultáneos. Ajusta este número según los recursos de tu servidor.
+</Note>
+
+Activa y reinicia Supervisor:
+
+```bash
+# Recargar configuración
+sudo supervisorctl reread
+sudo supervisorctl update
+
+# Iniciar workers
+sudo supervisorctl start fabricamarie-worker:*
+
+# Verificar estado
+sudo supervisorctl status
+```
+
+### Comandos Útiles de Supervisor
+
+```bash
+# Ver estado de todos los procesos
+sudo supervisorctl status
+
+# Reiniciar workers
+sudo supervisorctl restart fabricamarie-worker:*
+
+# Detener workers
+sudo supervisorctl stop fabricamarie-worker:*
+
+# Ver logs
+sudo supervisorctl tail -f fabricamarie-worker:fabricamarie-worker_00
+```
+
+<Tip>
+  Después de actualizar el código, siempre reinicia los workers: `sudo supervisorctl restart fabricamarie-worker:*`
+</Tip>
+
+## Programación de Tareas (Cron)
+
+Laravel usa un único cron job que ejecuta todas las tareas programadas.
+
+### Configurar Cron
+
+Edita el crontab:
+
+```bash
+sudo crontab -e -u www-data
+```
+
+Agrega la siguiente línea:
+
+```bash
+* * * * * cd /var/www/fabricamarie && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Esto ejecuta el scheduler de Laravel cada minuto.
+
+### Verificar Tareas Programadas
+
+```bash
+# Ver lista de tareas programadas
+php artisan schedule:list
+
+# Ejecutar manualmente el scheduler
+php artisan schedule:run
+
+# Ver próxima ejecución
+php artisan schedule:work
+```
+
+## Monitoreo y Logging
+
+### Logs de Aplicación
+
+Los logs se almacenan en `/var/www/fabricamarie/storage/logs/`.
+
+```bash
+# Ver logs en tiempo real
+tail -f /var/www/fabricamarie/storage/logs/laravel.log
+
+# Ver últimas 100 líneas
+tail -n 100 /var/www/fabricamarie/storage/logs/laravel.log
+
+# Buscar errores
+grep "ERROR" /var/www/fabricamarie/storage/logs/laravel.log
+```
+
+### Rotación de Logs
+
+Configura logrotate para prevenir que los logs crezcan indefinidamente:
+
+```bash
+sudo nano /etc/logrotate.d/fabricamarie
+```
+
+Agrega:
+
+```
+/var/www/fabricamarie/storage/logs/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 www-data www-data
+    sharedscripts
+    postrotate
+        php /var/www/fabricamarie/artisan cache:clear > /dev/null 2>&1 || true
+    endscript
+}
+```
+
+### Monitoreo del Sistema
+
+#### Instalar herramientas de monitoreo
+
+```bash
+# htop - Monitor de procesos interactivo
+sudo apt install -y htop
+
+# netdata - Dashboard de monitoreo en tiempo real
+bash <(curl -Ss https://my-netdata.io/kickstart.sh)
+
+# Acceder a netdata en: http://tu-servidor:19999
+```
+
+#### Monitoreo de Base de Datos
+
+```bash
+# Ver procesos MySQL
+sudo mysqladmin -u root -p processlist
+
+# Ver estado de MySQL
+sudo mysqladmin -u root -p status
+
+# Ver variables de MySQL
+sudo mysql -u root -p -e "SHOW VARIABLES;"
+```
+
+#### Monitoreo de PHP-FPM
+
+```bash
+# Ver estado de PHP-FPM
+sudo systemctl status php8.2-fpm
+
+# Ver procesos PHP
+ps aux | grep php-fpm
+
+# Monitorear pool de PHP-FPM
+sudo watch -n 1 'ps aux | grep php-fpm | wc -l'
+```
+
+### Alertas y Notificaciones
+
+Configura Laravel para enviar notificaciones de errores críticos.
+
+En `app/Exceptions/Handler.php`:
+
+```php
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+
+public function register(): void
+{
+    $this->reportable(function (Throwable $e) {
+        if (app()->environment('production')) {
+            Log::critical($e->getMessage(), [
+                'exception' => $e,
+                'url' => request()->url(),
+                'user' => auth()->id(),
+            ]);
+            
+            // Enviar email para errores críticos
+            if ($this->shouldReport($e)) {
+                Mail::to('admin@tu-dominio.com')
+                    ->send(new CriticalErrorNotification($e));
+            }
+        }
+    });
+}
+```
+
+## Estrategias de Backup
+
+### Backup de Base de Datos
+
+Crea un script de backup:
+
+```bash
+sudo nano /usr/local/bin/backup-fabricamarie-db.sh
+```
+
+Agrega:
+
+```bash
+#!/bin/bash
+
+# Configuración
+DB_NAME="fabrica_marie_api"
+DB_USER="fabricamarie"
+DB_PASS="tu_contraseña"
+BACKUP_DIR="/var/backups/fabricamarie/database"
+DATE=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/db_backup_$DATE.sql.gz"
+
+# Crear directorio si no existe
+mkdir -p $BACKUP_DIR
+
+# Realizar backup
+mysqldump -u $DB_USER -p$DB_PASS $DB_NAME | gzip > $BACKUP_FILE
+
+# Eliminar backups antiguos (más de 7 días)
+find $BACKUP_DIR -name "db_backup_*.sql.gz" -type f -mtime +7 -delete
+
+echo "Backup completado: $BACKUP_FILE"
+```
+
+Dar permisos de ejecución:
+
+```bash
+sudo chmod +x /usr/local/bin/backup-fabricamarie-db.sh
+```
+
+### Backup de Archivos
+
+Script para backup de código y archivos:
+
+```bash
+sudo nano /usr/local/bin/backup-fabricamarie-files.sh
+```
+
+```bash
+#!/bin/bash
+
+APP_DIR="/var/www/fabricamarie"
+BACKUP_DIR="/var/backups/fabricamarie/files"
+DATE=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/files_backup_$DATE.tar.gz"
+
+mkdir -p $BACKUP_DIR
+
+# Backup excluyendo node_modules, vendor, y cache
+tar -czf $BACKUP_FILE \
+    --exclude='node_modules' \
+    --exclude='vendor' \
+    --exclude='storage/framework/cache' \
+    --exclude='storage/framework/sessions' \
+    --exclude='storage/framework/views' \
+    -C /var/www fabricamarie
+
+# Eliminar backups antiguos
+find $BACKUP_DIR -name "files_backup_*.tar.gz" -type f -mtime +7 -delete
+
+echo "Backup completado: $BACKUP_FILE"
+```
+
+Dar permisos:
+
+```bash
+sudo chmod +x /usr/local/bin/backup-fabricamarie-files.sh
+```
+
+### Automatizar Backups con Cron
+
+```bash
+sudo crontab -e
+```
+
+Agrega:
+
+```bash
+# Backup de base de datos diario a las 2 AM
+0 2 * * * /usr/local/bin/backup-fabricamarie-db.sh >> /var/log/backup-db.log 2>&1
+
+# Backup de archivos semanal (domingos a las 3 AM)
+0 3 * * 0 /usr/local/bin/backup-fabricamarie-files.sh >> /var/log/backup-files.log 2>&1
+```
+
+### Backup Remoto (Opcional)
+
+Sincronizar backups a servidor remoto:
+
+```bash
+# Instalar rclone
+curl https://rclone.org/install.sh | sudo bash
+
+# Configurar (ej. Google Drive, AWS S3, Dropbox)
+rclone config
+
+# Script de sincronización
+sudo nano /usr/local/bin/sync-backups.sh
+```
+
+```bash
+#!/bin/bash
+
+LOCAL_DIR="/var/backups/fabricamarie"
+REMOTE_NAME="gdrive"  # Nombre configurado en rclone
+REMOTE_PATH="FabricaMarieBackups"
+
+rclone sync $LOCAL_DIR $REMOTE_NAME:$REMOTE_PATH \
+    --progress \
+    --transfers 4 \
+    --checkers 8 \
+    --log-file /var/log/rclone-backup.log
+
+echo "Sincronización completada"
+```
+
+## Optimización de Rendimiento
+
+### OPcache (PHP)
+
+Verifica que OPcache esté habilitado:
+
+```bash
+php -i | grep opcache
+```
+
+Configuración óptima en `/etc/php/8.2/fpm/conf.d/10-opcache.ini`:
+
+```ini
+[opcache]
+; Habilitar OPcache
+opcache.enable=1
+opcache.enable_cli=0
+
+; Memoria para OPcache (MB)
+opcache.memory_consumption=256
+
+; Cantidad de archivos que puede cachear
+opcache.max_accelerated_files=10000
+
+; Frecuencia de validación (segundos)
+opcache.revalidate_freq=2
+
+; Optimizaciones
+opcache.fast_shutdown=1
+opcache.validate_timestamps=1
+opcache.save_comments=1
+
+; Interned strings buffer
+opcache.interned_strings_buffer=16
+```
+
+Reinicia PHP-FPM:
+
+```bash
+sudo systemctl restart php8.2-fpm
+```
+
+### Redis Cache
+
+Asegúrate de que Laravel use Redis:
+
+```bash
+# .env
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+```
+
+Generar caché de configuración:
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+<Warning>
+  Ejecuta estos comandos de cache después de cada actualización del código o cambios en configuración.
+</Warning>
+
+### Optimización de Composer
+
+```bash
+composer dump-autoload --optimize --classmap-authoritative
+```
+
+### Compresión Gzip/Brotli
+
+Habilita compresión en Nginx:
+
+```nginx
+# En /etc/nginx/nginx.conf
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 6;
+gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+gzip_disable "msie6";
+```
+
+Reinicia Nginx:
+
+```bash
+sudo systemctl restart nginx
+```
+
+### CDN para Assets Estáticos
+
+Configura Cloudflare o similar para cachear assets estáticos (CSS, JS, imágenes).
+
+## Seguridad Avanzada
+
+### Firewall (UFW)
+
+```bash
+# Instalar UFW
+sudo apt install -y ufw
+
+# Políticas por defecto
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Permitir SSH
+sudo ufw allow 22/tcp
+
+# Permitir HTTP y HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Habilitar firewall
+sudo ufw enable
+
+# Ver estado
+sudo ufw status verbose
+```
+
+### Fail2ban (Protección contra fuerza bruta)
+
+```bash
+# Instalar Fail2ban
+sudo apt install -y fail2ban
+
+# Crear configuración personalizada
+sudo nano /etc/fail2ban/jail.local
+```
+
+Agrega:
+
+```ini
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+port = 22
+logpath = /var/log/auth.log
+
+[nginx-limit-req]
+enabled = true
+filter = nginx-limit-req
+port = http,https
+logpath = /var/log/nginx/*error.log
+
+[nginx-botsearch]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/*access.log
+```
+
+Reinicia Fail2ban:
+
+```bash
+sudo systemctl restart fail2ban
+sudo systemctl enable fail2ban
+
+# Ver estado
+sudo fail2ban-client status
+```
+
+### Proteger archivos sensibles
+
+Asegúrate de que estos archivos no sean accesibles públicamente:
+
+```bash
+# Verificar permisos de .env
+chmod 600 /var/www/fabricamarie/.env
+
+# Proteger archivos de configuración
+chmod 644 /var/www/fabricamarie/config/*.php
+```
+
+### Headers de Seguridad
+
+Ya incluidos en la configuración de Nginx/Apache:
+
+- `Strict-Transport-Security` (HSTS)
+- `X-Frame-Options`
+- `X-Content-Type-Options`
+- `X-XSS-Protection`
+- `Content-Security-Policy`
+
+### SSL/TLS Configuración
+
+Verifica la seguridad de tu SSL:
+
+```bash
+# Prueba local
+openssl s_client -connect tu-dominio.com:443 -tls1_2
+
+# Prueba online
+# Visita: https://www.ssllabs.com/ssltest/
+```
+
+Objetivo: Calificación A+ en SSL Labs.
+
+## Actualizaciones y Mantenimiento
+
+### Proceso de Actualización
+
+```bash
+# 1. Activar modo mantenimiento
+php artisan down --message="Actualización en progreso" --retry=60
+
+# 2. Backup de base de datos
+/usr/local/bin/backup-fabricamarie-db.sh
+
+# 3. Obtener últimos cambios
+git pull origin main
+
+# 4. Actualizar dependencias
+composer install --optimize-autoloader --no-dev
+npm install
+npm run build
+
+# 5. Ejecutar migraciones
+php artisan migrate --force
+
+# 6. Limpiar y reconstruir cache
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 7. Reiniciar servicios
+sudo supervisorctl restart fabricamarie-worker:*
+sudo systemctl restart php8.2-fpm
+
+# 8. Desactivar modo mantenimiento
+php artisan up
+```
+
+<Tip>
+  Crea un script para automatizar este proceso y reducir el tiempo de inactividad.
+</Tip>
+
+### Script de Actualización Automatizado
+
+```bash
+sudo nano /usr/local/bin/update-fabricamarie.sh
+```
+
+```bash
+#!/bin/bash
+
+set -e  # Salir si hay error
+
+APP_DIR="/var/www/fabricamarie"
+LOG_FILE="/var/log/fabricamarie-update.log"
+
+echo "[$(date)] Iniciando actualización" >> $LOG_FILE
+
+cd $APP_DIR
+
+# Modo mantenimiento
+php artisan down --message="Actualización en progreso" --retry=60
+
+# Backup
+/usr/local/bin/backup-fabricamarie-db.sh
+
+# Actualizar código
+git pull origin main
+
+# Dependencias
+composer install --optimize-autoloader --no-dev
+npm install
+npm run build
+
+# Migraciones
+php artisan migrate --force
+
+# Cache
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Reiniciar servicios
+sudo supervisorctl restart fabricamarie-worker:*
+sudo systemctl restart php8.2-fpm
+
+# Modo normal
+php artisan up
+
+echo "[$(date)] Actualización completada" >> $LOG_FILE
+```
+
+```bash
+sudo chmod +x /usr/local/bin/update-fabricamarie.sh
+```
+
+### Mantenimiento Regular
+
+**Diario:**
+- Revisar logs de errores
+- Monitorear uso de recursos
+- Verificar backups completados
+
+**Semanal:**
+- Actualizar paquetes del sistema: `sudo apt update && sudo apt upgrade`
+- Revisar espacio en disco: `df -h`
+- Limpiar logs antiguos
+- Analizar rendimiento de consultas SQL
+
+**Mensual:**
+- Revisar y optimizar base de datos
+- Actualizar dependencias de Composer y NPM
+- Auditoría de seguridad
+- Prueba de restauración de backups
+
+## Checklist de Producción
+
+<Check>
+  Variables de entorno configuradas correctamente (.env)
+</Check>
+<Check>
+  APP_DEBUG=false
+</Check>
+<Check>
+  SSL/HTTPS configurado y funcionando
+</Check>
+<Check>
+  Queue workers corriendo con Supervisor
+</Check>
+<Check>
+  Cron job configurado para scheduler
+</Check>
+<Check>
+  Backups automáticos configurados
+</Check>
+<Check>
+  Redis instalado y configurado
+</Check>
+<Check>
+  OPcache habilitado
+</Check>
+<Check>
+  Firewall (UFW) habilitado
+</Check>
+<Check>
+  Fail2ban configurado
+</Check>
+<Check>
+  Logs rotando correctamente
+</Check>
+<Check>
+  Permisos de archivos correctos
+</Check>
+<Check>
+  Monitoreo configurado
+</Check>
+<Check>
+  Documentación de accesos y credenciales segura
+</Check>
+
+## Recursos Adicionales
+
+<CardGroup cols={2}>
+  <Card title="Laravel Docs" icon="book" href="https://laravel.com/docs">
+    Documentación oficial de Laravel
+  </Card>
+  <Card title="Nginx Docs" icon="server" href="https://nginx.org/en/docs/">
+    Documentación de Nginx
+  </Card>
+  <Card title="MySQL Tuning" icon="database" href="https://dev.mysql.com/doc/">
+    Guía de optimización MySQL
+  </Card>
+  <Card title="Security Best Practices" icon="shield" href="https://cheatsheetseries.owasp.org/">
+    OWASP Cheat Sheets
+  </Card>
+</CardGroup>

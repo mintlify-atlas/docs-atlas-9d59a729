@@ -1,0 +1,390 @@
+---
+title: 'Autenticación'
+description: 'Guía completa sobre el inicio de sesión, gestión de sesiones y cierre de sesión en Fabrica Marie ERP'
+icon: 'lock'
+---
+
+## Descripción General
+
+El sistema Fabrica Marie ERP utiliza autenticación basada en tokens (Laravel Sanctum) para proteger los recursos de la API. Esta guía te ayudará a comprender cómo iniciar sesión, mantener tu sesión activa y cerrar sesión correctamente.
+
+## Inicio de Sesión
+
+### Proceso de Login
+
+Para acceder al sistema, debes autenticarte usando tu email y contraseña.
+
+<Steps>
+  <Step title="Enviar credenciales">
+    Realiza una petición POST al endpoint de login con tus credenciales:
+
+    ```bash
+    POST /api/login
+    Content-Type: application/json
+
+    {
+      "email": "usuario@fabricamarie.com",
+      "password": "tu_contraseña"
+    }
+    ```
+  </Step>
+
+  <Step title="Recibir token de acceso">
+    Si las credenciales son correctas y tu usuario está activo, recibirás una respuesta con:
+
+    ```json
+    {
+      "token": "1|abc123xyz789...",
+      "user": {
+        "id": 1,
+        "nombre": "Juan Pérez",
+        "email": "usuario@fabricamarie.com",
+        "username": "jperez",
+        "activo": 1,
+        "ultimo_login": "2026-03-11 10:30:00"
+      },
+      "roles": [
+        {
+          "id": 2,
+          "nombre": "VENDEDOR",
+          "descripcion": "Personal de ventas"
+        }
+      ],
+      "permisos": [
+        {
+          "id": 5,
+          "nombre": "ventas.crear",
+          "descripcion": "Crear ventas"
+        }
+      ]
+    }
+    ```
+  </Step>
+
+  <Step title="Guardar el token">
+    Guarda el token de acceso en el almacenamiento local de tu aplicación. Necesitarás incluirlo en todas las peticiones posteriores.
+  </Step>
+</Steps>
+
+<Note>
+  El sistema actualiza automáticamente el campo `ultimo_login` cada vez que inicias sesión exitosamente.
+</Note>
+
+### Ejemplo de Código
+
+<Accordion title="Ejemplo con JavaScript/Fetch">
+```javascript
+async function login(email, password) {
+  try {
+    const response = await fetch('https://api.fabricamarie.com/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      throw new Error('Credenciales incorrectas');
+    }
+
+    const data = await response.json();
+    
+    // Guardar token y datos del usuario
+    localStorage.setItem('auth_token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('roles', JSON.stringify(data.roles));
+    
+    return data;
+  } catch (error) {
+    console.error('Error en login:', error);
+    throw error;
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Ejemplo con cURL">
+```bash
+curl -X POST https://api.fabricamarie.com/api/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "usuario@fabricamarie.com",
+    "password": "mi_contraseña"
+  }'
+```
+</Accordion>
+
+### Validaciones
+
+El sistema valida los siguientes aspectos durante el login:
+
+- **Email válido**: Debe ser un formato de email válido
+- **Contraseña requerida**: No puede estar vacía
+- **Usuario activo**: Solo usuarios con `activo = 1` pueden iniciar sesión
+- **Credenciales correctas**: El email y contraseña deben coincidir con los registros
+
+<Warning>
+  Si intentas iniciar sesión con un usuario inactivo (`activo = 0`), recibirás un error 401 aunque la contraseña sea correcta.
+</Warning>
+
+## Gestión de Sesión
+
+### Uso del Token
+
+Una vez que tengas el token, debes incluirlo en el header `Authorization` de todas tus peticiones:
+
+```bash
+GET /api/inventario/productos
+Authorization: Bearer 1|abc123xyz789...
+```
+
+### Verificar Usuario Actual
+
+Puedes verificar la información del usuario autenticado en cualquier momento:
+
+```bash
+GET /api/me
+Authorization: Bearer {tu_token}
+```
+
+**Respuesta:**
+
+```json
+{
+  "user": {
+    "id": 1,
+    "nombre": "Juan Pérez",
+    "email": "usuario@fabricamarie.com"
+  },
+  "roles": [
+    {
+      "id": 2,
+      "nombre": "VENDEDOR"
+    }
+  ],
+  "permisos": [
+    {
+      "id": 5,
+      "nombre": "ventas.crear"
+    }
+  ]
+}
+```
+
+<Info>
+  Este endpoint es útil para:
+  - Verificar que tu sesión sigue activa
+  - Obtener los permisos actualizados del usuario
+  - Validar roles antes de mostrar funcionalidades
+</Info>
+
+### Duración del Token
+
+Los tokens de Sanctum tienen una duración configurable. Por defecto:
+
+- **Tiempo de expiración**: Configurable en el servidor
+- **Renovación**: Debes iniciar sesión nuevamente cuando el token expire
+
+## Cierre de Sesión
+
+### Proceso de Logout
+
+Para cerrar sesión correctamente y revocar tu token:
+
+<Steps>
+  <Step title="Enviar petición de logout">
+    ```bash
+    POST /api/logout
+    Authorization: Bearer {tu_token}
+    ```
+  </Step>
+
+  <Step title="Recibir confirmación">
+    ```json
+    {
+      "message": "Sesión cerrada"
+    }
+    ```
+  </Step>
+
+  <Step title="Limpiar datos locales">
+    Elimina el token y datos del usuario del almacenamiento local:
+
+    ```javascript
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('roles');
+    ```
+  </Step>
+</Steps>
+
+### Ejemplo Completo de Logout
+
+```javascript
+async function logout() {
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch('https://api.fabricamarie.com/api/logout', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      // Limpiar datos locales
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('roles');
+      
+      // Redirigir a login
+      window.location.href = '/login';
+    }
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+  }
+}
+```
+
+<Note>
+  Al hacer logout, el token actual se revoca en el servidor y ya no podrá ser utilizado para futuras peticiones.
+</Note>
+
+## Manejo de Errores
+
+### Errores Comunes
+
+<Accordion title="401 - Credenciales Incorrectas">
+**Error:**
+```json
+{
+  "message": "Credenciales incorrectas"
+}
+```
+
+**Causas:**
+- Email o contraseña incorrectos
+- Usuario con `activo = 0`
+
+**Solución:**
+- Verificar email y contraseña
+- Contactar al administrador si tu cuenta está inactiva
+</Accordion>
+
+<Accordion title="401 - Token Inválido o Expirado">
+**Error:**
+```json
+{
+  "message": "Unauthenticated"
+}
+```
+
+**Causas:**
+- Token expirado
+- Token revocado
+- Token inválido
+
+**Solución:**
+- Iniciar sesión nuevamente
+- Verificar que estás enviando el token correctamente
+</Accordion>
+
+<Accordion title="422 - Validación de Datos">
+**Error:**
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": ["The email field is required."],
+    "password": ["The password field is required."]
+  }
+}
+```
+
+**Solución:**
+- Asegurarte de enviar todos los campos requeridos
+- Verificar que el formato del email sea válido
+</Accordion>
+
+## Buenas Prácticas
+
+### Seguridad
+
+<CardGroup cols={2}>
+  <Card title="Almacenamiento Seguro" icon="shield">
+    - Nunca almacenes contraseñas en texto plano
+    - Usa localStorage o sessionStorage para tokens
+    - Considera usar cookies httpOnly en producción
+  </Card>
+
+  <Card title="Validación de Token" icon="check">
+    - Verifica el token antes de cada operación crítica
+    - Maneja errores 401 redirigiendo al login
+    - Implementa renovación automática de tokens
+  </Card>
+
+  <Card title="HTTPS" icon="lock">
+    - Siempre usa HTTPS en producción
+    - Nunca envíes tokens por HTTP sin cifrar
+    - Protege tus endpoints con SSL/TLS
+  </Card>
+
+  <Card title="Cierre de Sesión" icon="right-from-bracket">
+    - Implementa logout en todas las interfaces
+    - Revoca tokens al cerrar sesión
+    - Limpia todos los datos sensibles
+  </Card>
+</CardGroup>
+
+### Experiencia de Usuario
+
+- Muestra mensajes claros de error al usuario
+- Implementa un sistema de "recordar contraseña"
+- Redirige automáticamente después del login exitoso
+- Muestra el nombre y rol del usuario en la interfaz
+
+## Código de Referencia
+
+El código fuente del controlador de autenticación está en:
+
+**AuthController.php** (`app/Http/Controllers/Api/AuthController.php:11-54`)
+
+```php
+public function login(Request $request)
+{
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required'
+    ]);
+
+    if (!Auth::attempt([
+        'email' => $credentials['email'],
+        'password' => $credentials['password'],
+        'activo' => 1
+    ])) {
+        return response()->json(['message' => 'Credenciales incorrectas'], 401);
+    }
+
+    $user = Auth::user();
+    $user->ultimo_login = now();
+    $user->save();
+
+    $token = $user->createToken('erp-token')->plainTextToken;
+
+    return response()->json([
+        'token' => $token,
+        'user' => $user,
+        'roles' => $user->roles,
+        'permisos' => $user->permisos()->get()
+    ]);
+}
+```
+
+## Siguientes Pasos
+
+<Card title="Explora los Roles y Permisos" icon="users" href="/guides/roles-permissions">
+  Aprende sobre los diferentes roles del sistema y qué puede hacer cada uno.
+</Card>

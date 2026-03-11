@@ -1,0 +1,271 @@
+---
+title: Introducción
+description: Bienvenido al sistema ERP Fabrica Marie - Una solución integral para la gestión de su fábrica de galletas
+---
+
+# Bienvenido a Fabrica Marie ERP
+
+Fabrica Marie ERP es un sistema de planificación de recursos empresariales desarrollado específicamente para la gestión integral de una fábrica de galletas ubicada en Junín, Perú. El sistema abarca todos los aspectos operativos del negocio, desde la producción hasta la distribución y venta.
+
+## Propósito del Sistema
+
+El sistema Fabrica Marie ERP fue diseñado para:
+
+<CardGroup cols={2}>
+  <Card title="Optimizar Operaciones" icon="chart-line">
+    Mejorar la eficiencia en gestión de inventario, ventas, rutas de distribución y control de caja
+  </Card>
+  <Card title="Control Financiero" icon="money-bill">
+    Monitorear en tiempo real flujos de efectivo, cuentas por cobrar y cierres de caja diarios
+  </Card>
+  <Card title="Trazabilidad Completa" icon="truck">
+    Seguimiento GPS de vehículos y control detallado de salidas de productos por vendedor
+  </Card>
+  <Card title="Gestión de Recursos" icon="users">
+    Administrar personal, roles, permisos y asistencia del equipo
+  </Card>
+</CardGroup>
+
+## Módulos Principales
+
+El ERP está organizado en módulos especializados que cubren todas las áreas operativas:
+
+### Inventario y Almacén
+
+- **Gestión de Productos**: Registro y control de productos con SKU, categorías, precios y costos
+- **Control de Rumas**: Organización de productos en grupos de producción
+- **Stock en Tiempo Real**: Monitoreo de stock por almacén y por vendedor
+- **Movimientos de Stock**: Trazabilidad completa de entradas, salidas y transferencias
+- **Salidas de Fábrica**: Control de productos asignados a vendedores para distribución
+- **Devoluciones**: Gestión de productos devueltos al almacén
+- **Alertas de Stock Mínimo**: Notificaciones automáticas de productos bajo stock
+- **Kardex Valorizado**: Historial detallado de movimientos con valorización
+
+### Ventas
+
+- **Nueva Venta**: Interfaz para registro rápido de ventas (contado/crédito)
+- **Historial de Ventas**: Consulta de ventas por fecha, vendedor, cliente y producto
+- **Cobranzas**: Control de abonos a cuentas por cobrar
+- **Resumen Diario**: Dashboard con métricas de ventas del día
+- **Reportes de Ventas**: Exportación a Excel con filtros avanzados
+- **Confirmación de Ventas**: Flujo de borrador → confirmada → anulada
+- **Caja Chica (Viáticos)**: Gestión de gastos de vendedores en ruta
+
+### Clientes y Rutas
+
+- **Gestión de Clientes**: Registro con datos de contacto, dirección y condiciones de pago
+- **CRM**: Seguimiento de historial de compras y comunicaciones
+- **Cuentas por Cobrar**: Monitoreo de deudas pendientes
+- **Clientes Morosos**: Identificación de clientes con pagos vencidos
+- **Gestión de Rutas**: Definición de zonas y asignación de clientes por ruta
+- **Asignación de Vendedores**: Vinculación de rutas con vendedores específicos
+
+### Caja
+
+- **Apertura de Caja**: Inicio de turno con saldo inicial
+- **Caja Actual**: Vista en tiempo real de saldo y movimientos
+- **Movimientos de Caja**: Registro de ingresos y egresos
+- **Salidas de Caja**: Control de gastos operativos
+- **Cierre de Caja**: Cuadre diario con cálculo de sobrante/faltante
+- **Regularización**: Ajustes de diferencias en caja
+- **Reportes de Caja**: Histórico de cierres con detalle de movimientos
+
+### GPS y Vehículos
+
+- **Seguimiento GPS**: Monitoreo en tiempo real de ubicación de vehículos
+- **Gestión de Vehículos**: Registro de unidades con placa, marca, modelo y chofer
+- **Mantenimiento**: Control de servicios y reparaciones programadas
+- **Reportes de Rutas**: Análisis de recorridos y optimización de rutas
+- **Asignación de Vehículos**: Vinculación de vehículos con vendedores
+
+### Recursos Humanos
+
+- **Empleados**: Gestión de personal con información salarial
+- **Bonos**: Registro de incentivos y bonificaciones
+- **Asistencia**: Control de horarios y ausencias
+- **Roles y Permisos**: Administración de accesos por rol
+
+### Reportes y Análisis
+
+- **Dashboard Ejecutivo**: Métricas clave del negocio
+- **Crecimiento por Zonas**: Análisis de ventas por región geográfica
+- **Programa de Fidelización**: Seguimiento de clientes frecuentes
+
+## Stack Tecnológico
+
+Fabrica Marie ERP está construido con tecnologías modernas que garantizan rendimiento, seguridad y escalabilidad:
+
+### Backend
+
+<CodeGroup>
+```json Laravel 11
+{
+  "framework": "Laravel 11",
+  "language": "PHP 8.2",
+  "database": "MySQL",
+  "authentication": "Laravel Sanctum",
+  "architecture": "MVC + Service Layer"
+}
+```
+</CodeGroup>
+
+- **Laravel 11**: Framework PHP moderno con arquitectura MVC
+- **PHP 8.2**: Lenguaje de programación con tipado fuerte
+- **MySQL**: Base de datos relacional para persistencia de datos
+- **Laravel Sanctum**: Sistema de autenticación basado en tokens
+- **Services**: Capa de lógica de negocio separada de controladores
+
+### Frontend
+
+<CodeGroup>
+```json React + TypeScript
+{
+  "library": "React 19",
+  "language": "TypeScript 5.8",
+  "bundler": "Vite 5",
+  "ui": "shadcn/ui + Tailwind CSS",
+  "routing": "React Router 6",
+  "state": "React Query + Context API"
+}
+```
+</CodeGroup>
+
+- **React 19**: Biblioteca para interfaces de usuario
+- **TypeScript 5.8**: JavaScript con tipado estático
+- **Vite**: Herramienta de build ultrarrápida
+- **shadcn/ui**: Componentes UI con Radix UI
+- **Tailwind CSS**: Framework CSS utility-first
+- **React Router 6**: Enrutamiento del lado del cliente
+- **TanStack Query**: Gestión de estado del servidor
+- **Mapbox GL**: Integración de mapas para GPS
+
+## Roles de Usuario
+
+El sistema implementa control de acceso basado en roles (RBAC) con los siguientes perfiles:
+
+<AccordionGroup>
+  <Accordion title="ADMIN - Administrador">
+    Acceso total al sistema. Puede gestionar usuarios, roles, permisos, configuración global y acceder a todos los módulos.
+    
+    **Módulos**: Todos
+  </Accordion>
+  
+  <Accordion title="ALMACENERO - Encargado de Almacén">
+    Gestiona inventario, productos, rumas, movimientos de stock, salidas de fábrica y devoluciones.
+    
+    **Módulos**: Inventario, Stock, Productos, Rumas, Movimientos, Salidas, Devoluciones
+  </Accordion>
+  
+  <Accordion title="VENDEDOR - Vendedor de Ruta">
+    Registra ventas, consulta stock asignado, gestiona clientes de su ruta y reporta cobranzas.
+    
+    **Módulos**: Ventas, Clientes, Cobranzas, Stock (solo su asignación), Rutas (solo su ruta)
+  </Accordion>
+  
+  <Accordion title="GERENTE - Gerencia">
+    Acceso a reportes ejecutivos, análisis de ventas, supervisión de caja y monitoreo general del negocio.
+    
+    **Módulos**: Dashboard, Reportes, Ventas, Caja (consulta), Clientes, GPS, RRHH
+  </Accordion>
+  
+  <Accordion title="CAJERO - Cajero">
+    Apertura y cierre de caja, registro de movimientos, control de ingresos y egresos diarios.
+    
+    **Módulos**: Caja, Movimientos, Cierres, Ventas (consulta)
+  </Accordion>
+  
+  <Accordion title="SUPERVISOR - Supervisor">
+    Supervisión de operaciones de ventas, monitoreo de vendedores y validación de procesos.
+    
+    **Módulos**: Ventas, Clientes, Rutas, GPS, Reportes
+  </Accordion>
+  
+  <Accordion title="MANTENIMIENTO - Encargado de Mantenimiento">
+    Gestiona vehículos, programación de mantenimientos y seguimiento de reparaciones.
+    
+    **Módulos**: Vehículos, Mantenimiento, Rutas (consulta)
+  </Accordion>
+  
+  <Accordion title="RRHH - Recursos Humanos">
+    Administración de empleados, bonos, asistencia e información salarial.
+    
+    **Módulos**: RRHH, Empleados, Bonos, Asistencia, Abonos
+  </Accordion>
+  
+  <Accordion title="FIDELIZACION - Programa de Fidelización">
+    Gestión del programa de lealtad, análisis de clientes frecuentes y campañas.
+    
+    **Módulos**: Clientes, CRM, Fidelización
+  </Accordion>
+</AccordionGroup>
+
+## Características Destacadas
+
+### Autenticación Segura con Sanctum
+
+El sistema utiliza Laravel Sanctum para autenticación basada en tokens:
+
+- Login con email y contraseña
+- Tokens de sesión almacenados en localStorage
+- Middleware de autenticación en todas las rutas protegidas
+- Validación de usuario activo
+- Cierre de sesión con revocación de token
+
+### Control de Acceso Granular
+
+Implementación de middleware para verificación de roles y permisos:
+
+- **Middleware CheckRole**: Valida que el usuario tenga el rol requerido
+- **Middleware CheckPermiso**: Verifica permisos específicos
+- **Middleware CajaAbierta**: Valida que exista caja abierta antes de registrar operaciones
+
+### Flujo de Trabajo de Ventas
+
+<Steps>
+  <Step title="Crear Venta en Borrador">
+    El vendedor registra la venta con cliente, productos y tipo de pago. La venta se crea en estado BORRADOR y se reserva el stock.
+  </Step>
+  
+  <Step title="Confirmar Venta">
+    Al confirmar, el sistema descuenta el stock reservado, registra el movimiento en caja y cambia el estado a CONFIRMADA.
+  </Step>
+  
+  <Step title="Gestionar Cuenta por Cobrar">
+    Si es venta a crédito, se crea automáticamente una cuenta por cobrar con el saldo pendiente.
+  </Step>
+  
+  <Step title="Anular si es Necesario">
+    Ventas confirmadas pueden anularse, devolviendo el stock y registrando egreso en caja.
+  </Step>
+</Steps>
+
+### Trazabilidad de Stock
+
+El sistema mantiene un control exhaustivo del inventario:
+
+- **Stock Actual**: Existencias en almacén principal
+- **Stock Vendedor**: Productos asignados a cada vendedor
+- **Stock Reservado**: Productos en ventas pendientes de confirmar
+- **Kardex**: Historial completo de movimientos por producto
+- **Kardex Valorizado**: Movimientos con costos para análisis financiero
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Guía de Inicio Rápido" icon="rocket" href="/quickstart">
+    Aprende a configurar el sistema y realizar tu primera venta
+  </Card>
+  <Card title="Arquitectura Técnica" icon="diagram-project" href="/architecture">
+    Conoce la arquitectura del sistema y cómo funcionan sus componentes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Documentación completa de endpoints y modelos de datos
+  </Card>
+  <Card title="Guías de Módulos" icon="book" href="/guides/authentication">
+    Tutoriales detallados para cada módulo del sistema
+  </Card>
+</CardGroup>
+
+<Note>
+**Nota**: Este sistema está en constante evolución. Consulta la sección de actualizaciones para conocer las últimas mejoras y funcionalidades.
+</Note>
