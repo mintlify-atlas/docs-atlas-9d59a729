@@ -1,0 +1,192 @@
+{
+  "projectType": "saas",
+  "projectName": "Fabrica Marie ERP",
+  "projectDescription": "Sistema ERP completo para fábrica de galletas con gestión de inventario, ventas, rutas, vehículos, caja y recursos humanos.",
+  "theme": "linden",
+  "primaryColor": "#040404",
+  "lightColor": "#ef370f",
+  "darkColor": "#f79d72",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentación",
+        "groups": [
+          {
+            "group": "Inicio",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Características Principales",
+            "pages": [
+              "features/inventory-management",
+              "features/sales-management",
+              "features/cash-register",
+              "features/client-management",
+              "features/route-planning",
+              "features/vehicle-tracking",
+              "features/gps-monitoring",
+              "features/hr-management"
+            ]
+          },
+          {
+            "group": "Guías de Usuario",
+            "pages": [
+              "guides/authentication",
+              "guides/roles-permissions",
+              "guides/inventory-operations",
+              "guides/sales-process",
+              "guides/cash-operations",
+              "guides/route-management",
+              "guides/reports"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Referencia de API",
+        "groups": [
+          {
+            "group": "Autenticación",
+            "pages": [
+              "api/auth/login",
+              "api/auth/logout",
+              "api/auth/me"
+            ]
+          },
+          {
+            "group": "Inventario",
+            "pages": [
+              "api/inventory/products",
+              "api/inventory/rumas",
+              "api/inventory/stock",
+              "api/inventory/movements",
+              "api/inventory/outputs",
+              "api/inventory/returns"
+            ]
+          },
+          {
+            "group": "Ventas",
+            "pages": [
+              "api/sales/create-sale",
+              "api/sales/list-sales",
+              "api/sales/sale-details",
+              "api/sales/reports"
+            ]
+          },
+          {
+            "group": "Clientes",
+            "pages": [
+              "api/clients/manage-clients",
+              "api/clients/routes",
+              "api/clients/accounts-receivable"
+            ]
+          },
+          {
+            "group": "Caja",
+            "pages": [
+              "api/cash/open-close",
+              "api/cash/movements",
+              "api/cash/reports",
+              "api/cash/disbursements"
+            ]
+          },
+          {
+            "group": "Vehículos y GPS",
+            "pages": [
+              "api/vehicles/manage-vehicles",
+              "api/vehicles/gps-tracking",
+              "api/vehicles/maintenance"
+            ]
+          },
+          {
+            "group": "Administración",
+            "pages": [
+              "api/admin/users",
+              "api/admin/roles",
+              "api/admin/permissions"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Desarrollo",
+        "groups": [
+          {
+            "group": "Backend",
+            "pages": [
+              "development/backend/setup",
+              "development/backend/database",
+              "development/backend/middleware",
+              "development/backend/testing"
+            ]
+          },
+          {
+            "group": "Frontend",
+            "pages": [
+              "development/frontend/setup",
+              "development/frontend/components",
+              "development/frontend/routing",
+              "development/frontend/state-management"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "development/deployment/requirements",
+              "development/deployment/installation",
+              "development/deployment/configuration",
+              "development/deployment/production"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Gestión completa de inventario con rumas y movimientos de stock",
+    "Sistema de ventas con control de caja y cuentas por cobrar",
+    "Gestión de rutas y clientes con CRM integrado",
+    "Rastreo GPS de vehículos en tiempo real",
+    "Control de mantenimiento de vehículos",
+    "Sistema de roles y permisos granulares",
+    "Reportes y análisis de ventas",
+    "Gestión de recursos humanos y viáticos"
+  ],
+  "publicApiSurface": [
+    "POST /api/login",
+    "POST /api/logout",
+    "GET /api/me",
+    "GET /api/inventario/productos",
+    "POST /api/inventario/productos",
+    "GET /api/inventario/stock",
+    "POST /api/inventario/movimientos",
+    "GET /api/inventario/salidas",
+    "POST /api/inventario/salidas",
+    "GET /api/inventario/devoluciones",
+    "POST /api/inventario/devoluciones",
+    "GET /api/ventas",
+    "POST /api/ventas",
+    "GET /api/ventas/reporte/completo",
+    "POST /api/caja/abrir",
+    "POST /api/caja/{id}/cerrar",
+    "GET /api/caja/movimientos/total",
+    "GET /api/clientes",
+    "POST /api/clientes",
+    "GET /api/rutas",
+    "POST /api/rutas",
+    "GET /api/vehiculos",
+    "POST /api/vehiculos",
+    "GET /api/gps-points",
+    "POST /api/gps-points",
+    "GET /api/mantenimientos",
+    "POST /api/mantenimientos",
+    "GET /api/admin/usuarios",
+    "POST /api/admin/usuarios",
+    "GET /api/admin/roles",
+    "POST /api/admin/roles"
+  ]
+}
